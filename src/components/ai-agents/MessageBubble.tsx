@@ -6,10 +6,12 @@ import { User, Bot } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: {
-    id: string;
+    id?: string;
     role: 'user' | 'assistant';
     content: string;
-    created_at: string;
+    created_at?: string;
+    timestamp?: string;
+    conversation_id?: string;
   };
 }
 
@@ -35,7 +37,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           <p className="whitespace-pre-wrap break-words">{message.content}</p>
         </div>
         <p className={`text-xs text-neutral-400 mt-1 ${isUser ? 'text-right' : 'text-left'}`}>
-          {format(new Date(message.created_at), 'HH:mm', { locale: ptBR })}
+          {message.created_at || message.timestamp ? 
+            format(new Date(message.created_at || message.timestamp || new Date()), 'HH:mm', { locale: ptBR }) : 
+            'Agora'
+          }
         </p>
       </div>
       

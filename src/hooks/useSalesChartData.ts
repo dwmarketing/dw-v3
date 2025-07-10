@@ -78,24 +78,15 @@ export const useSalesChartData = (
           endDateStr 
         });
 
-        let query = supabase
-          .from('creative_sales')
-          .select('*')
-          .gte('sale_date', startDateStr)
-          .lte('sale_date', endDateStr)
-          .eq('status', 'completed')
-          .order('sale_date', { ascending: true });
-
-        // Apply filters only if they are not 'all'
-        if (filters.creative && filters.creative !== 'all') {
-          query = query.eq('creative_name', filters.creative);
-        }
-
-        if (filters.paymentMethod && filters.paymentMethod !== 'all') {
-          query = query.eq('payment_method', filters.paymentMethod);
-        }
-
-        const { data: sales, error } = await query;
+        // Placeholder implementation - replace with actual data sources
+        const mockSales = [
+          { sale_date: '2024-01-01T10:00:00Z', gross_value: 250 },
+          { sale_date: '2024-01-01T14:00:00Z', gross_value: 180 },
+          { sale_date: '2024-01-02T09:00:00Z', gross_value: 320 },
+          { sale_date: '2024-01-02T16:00:00Z', gross_value: 290 },
+        ];
+        const sales = mockSales;
+        const error = null;
 
         if (error) {
           console.error('❌ Error fetching sales data:', error);

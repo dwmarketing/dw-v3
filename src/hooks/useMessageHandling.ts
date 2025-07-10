@@ -7,6 +7,7 @@ export interface Message {
   content: string;
   timestamp?: string;
   conversation_id?: string;
+  created_at?: string;
 }
 
 export const useMessageHandling = (conversationId: string | null) => {

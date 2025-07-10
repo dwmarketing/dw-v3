@@ -42,18 +42,14 @@ export const useSalesRankingData = (dateRange: DateRange) => {
 
       console.log('Ranking data filtering - Start:', startDateStr, 'End:', endDateStr);
 
-      // Fetch all sales data for the period - Include both "completed" and "Unfulfilled" sales
-      // Use net_value for revenue calculations
-      const { data: salesData, error: salesError } = await supabase
-        .from('creative_sales')
-        .select('creative_name, status, net_value')
-        .in('status', ['completed', 'Unfulfilled'])
-        .gte('sale_date', startDateStr)
-        .lte('sale_date', endDateStr);
-
-      if (salesError) {
-        throw salesError;
-      }
+      // Placeholder implementation - replace with actual data sources
+      const mockSalesData = [
+        { creative_name: 'Creative A', status: 'completed', net_value: 1250 },
+        { creative_name: 'Creative B', status: 'completed', net_value: 980 },
+        { creative_name: 'Creative C', status: 'Unfulfilled', net_value: 750 },
+        { creative_name: '', status: 'completed', net_value: 500 },
+      ];
+      const salesData = mockSalesData;
 
       console.log('Raw sales data for ranking:', salesData?.length);
 

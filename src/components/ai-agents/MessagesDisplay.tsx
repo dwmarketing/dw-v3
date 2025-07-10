@@ -6,10 +6,12 @@ import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 
 interface Message {
-  id: string;
+  id?: string;
   role: 'user' | 'assistant';
   content: string;
-  created_at: string;
+  created_at?: string;
+  timestamp?: string;
+  conversation_id?: string;
 }
 
 interface MessagesDisplayProps {
@@ -77,8 +79,8 @@ export const MessagesDisplay: React.FC<MessagesDisplayProps> = ({
             <p>Inicie uma conversa com seu Copy Chief!</p>
           </div>
         ) : (
-          messages.map((message) => (
-            <MessageBubble key={message.id} message={message} />
+          messages.map((message, index) => (
+            <MessageBubble key={message.id || `message-${index}`} message={message} />
           ))
         )}
         {loading && <TypingIndicator />}

@@ -34,7 +34,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
   };
 
   const handleSendMessage = (messageContent: string) => {
-    sendMessage(messageContent, conversationId, onConversationChange);
+    sendMessage(messageContent);
   };
 
   return (

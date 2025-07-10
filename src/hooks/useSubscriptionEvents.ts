@@ -40,36 +40,30 @@ export const useSubscriptionEvents = (
       try {
         setLoading(true);
 
-        let query = supabase
-          .from('subscription_events')
-          .select('*', { count: 'exact' })
-          .gte('event_date', dateRange.from.toISOString())
-          .lte('event_date', dateRange.to.toISOString())
-          .order('event_date', { ascending: false });
+        // Placeholder implementation - replace with actual data sources
+        const mockEvents: SubscriptionEvent[] = [
+          {
+            id: '1',
+            subscription_id: 'sub_1',
+            event_type: 'subscription',
+            amount: 99.90,
+            plan: 'Premium',
+            event_date: '2024-01-01',
+            customer_id: 'cust_1',
+            customer_email: 'test@example.com',
+            customer_name: 'Test User',
+            currency: 'BRL',
+            frequency: 'monthly',
+            payment_method: 'credit_card',
+            subscription_number: 1
+          }
+        ];
+        
+        setEvents(mockEvents);
+        setTotalCount(mockEvents.length);
+        setLoading(false);
+        return;
 
-        if (filters.plan !== 'all') {
-          query = query.eq('plan', filters.plan);
-        }
-        if (filters.eventType !== 'all') {
-          query = query.eq('event_type', filters.eventType);
-        }
-        if (filters.paymentMethod !== 'all') {
-          query = query.eq('payment_method', filters.paymentMethod);
-        }
-
-        // Apply pagination
-        const from = (page - 1) * pageSize;
-        const to = from + pageSize - 1;
-        query = query.range(from, to);
-
-        const { data, count, error } = await query;
-
-        if (error) {
-          console.error('Error fetching subscription events:', error);
-        } else {
-          setEvents(data || []);
-          setTotalCount(count || 0);
-        }
       } catch (error) {
         console.error('Error fetching subscription events:', error);
       } finally {

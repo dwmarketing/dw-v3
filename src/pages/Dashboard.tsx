@@ -14,6 +14,7 @@ import { SubscriptionsTab } from "@/components/dashboard/SubscriptionsTab";
 import { UsersTab } from "@/components/dashboard/UsersTab";
 import { BusinessManagersTab } from "@/components/dashboard/BusinessManagersTab";
 import { KPICard } from "@/components/dashboard/KPICard";
+import { KPICardsWithPermissions } from "@/components/dashboard/KPICardsWithPermissions";
 import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
 import { PermissionWrapper } from "@/components/common/PermissionWrapper";
 import { useAuth } from "@/hooks/useAuth";
@@ -163,19 +164,8 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Updated top cards layout - now with 4 cards including Ticket Médio */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-            <KPICard title="Total Investido" value={kipsLoading ? "Carregando..." : `R$ ${kpis.totalSpent.toLocaleString('pt-BR', {
-            minimumFractionDigits: 2
-          })}`} change={kipsLoading ? "..." : "+12.5%"} icon={DollarSign} trend="up" variant="black" />
-            <KPICard title="Receita" value={kipsLoading ? "Carregando..." : `R$ ${kpis.totalRevenue.toLocaleString('pt-BR', {
-            minimumFractionDigits: 2
-          })}`} change={kipsLoading ? "..." : "+23.8%"} icon={TrendingUp} trend="up" variant="success" />
-            <KPICard title="Ticket Médio" value={kipsLoading ? "Carregando..." : `R$ ${kpis.avgTicket.toLocaleString('pt-BR', {
-            minimumFractionDigits: 2
-          })}`} change={kipsLoading ? "..." : "+8.3%"} icon={Target} trend="up" variant="info" />
-            <KPICard title="Total de Pedidos" value={kipsLoading ? "Carregando..." : kpis.totalOrders.toLocaleString()} change={kipsLoading ? "..." : "+15.6%"} icon={ShoppingCart} trend="up" variant="purple" />
-          </div>
+          {/* KPI Cards with Permissions */}
+          <KPICardsWithPermissions kpis={kpis} loading={kipsLoading} />
 
           <Card className="border-transparent backdrop-blur-sm bg-transparent ">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

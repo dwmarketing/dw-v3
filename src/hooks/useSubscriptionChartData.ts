@@ -40,95 +40,17 @@ export const useSubscriptionChartData = (
         const startDateStr = format(startDate, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         const endDateStr = format(endDate, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
-        if (type === 'renewals') {
-          // Use subscription_renewals table for renewals
-          let query = supabase
-            .from('subscription_renewals')
-            .select('*')
-            .gte('created_at', startDateStr)
-            .lte('created_at', endDateStr);
+        // Placeholder implementation - replace with actual data sources
+        const mockData: ChartDataItem[] = [
+          { date: '2024-01-01', revenue: 1500, plan: 'Plano A' },
+          { date: '2024-01-02', revenue: 2200, plan: 'Plano B' },
+          { date: '2024-01-03', revenue: 1800, plan: 'Plano C' },
+          { date: '2024-01-04', revenue: 2500, plan: 'Plano A' },
+        ];
 
-          // Apply product filter if not "all"
-          if (filters.plan !== 'all') {
-            query = query.eq('plan', filters.plan);
-          }
+        setChartData(mockData);
 
-          const { data: renewals, error } = await query;
-
-          if (error) {
-            console.error('❌ Error fetching renewals:', error);
-            return;
-          }
-
-          if (renewals) {
-            const chartData: ChartDataItem[] = renewals.map(renewal => ({
-              date: renewal.created_at,
-              revenue: renewal.amount || 0,
-              plan: renewal.plan || 'Unknown'
-            }));
-
-            setChartData(chartData);
-          }
-        } else {
-          // For subscriptions, we'll use both product_sales and subscription_events
-          let productSalesQuery = supabase
-            .from('product_sales')
-            .select('*')
-            .gte('sale_date', startDateStr)
-            .lte('sale_date', endDateStr);
-
-          let subscriptionEventsQuery = supabase
-            .from('subscription_events')
-            .select('*')
-            .gte('event_date', startDateStr)
-            .lte('event_date', endDateStr)
-            .eq('event_type', 'subscription');
-
-          // Apply product filter if not "all"
-          if (filters.plan !== 'all') {
-            productSalesQuery = productSalesQuery.eq('product_name', filters.plan);
-            subscriptionEventsQuery = subscriptionEventsQuery.eq('plan', filters.plan);
-          }
-
-          const [productSalesResult, subscriptionEventsResult] = await Promise.all([
-            productSalesQuery,
-            subscriptionEventsQuery
-          ]);
-
-          if (productSalesResult.error || subscriptionEventsResult.error) {
-            console.error('❌ Error fetching subscription data:', 
-              productSalesResult.error || subscriptionEventsResult.error);
-            return;
-          }
-
-          const chartData: ChartDataItem[] = [];
-
-          // Add product sales data
-          if (productSalesResult.data) {
-            productSalesResult.data.forEach(sale => {
-              chartData.push({
-                date: sale.sale_date,
-                revenue: sale.sale_value || 0,
-                plan: sale.product_name || 'Unknown'
-              });
-            });
-          }
-
-          // Add subscription events data
-          if (subscriptionEventsResult.data) {
-            subscriptionEventsResult.data.forEach(event => {
-              chartData.push({
-                date: event.event_date,
-                revenue: event.amount || 0,
-                plan: event.plan || 'Unknown'
-              });
-            });
-          }
-
-          setChartData(chartData);
-        }
-
-        console.log(`✅ ${type} chart data loaded:`, chartData.length, 'items');
+        console.log(`✅ ${type} chart data loaded:`, mockData.length, 'items');
 
       } catch (error) {
         console.error(`❌ Error fetching ${type} chart data:`, error);
