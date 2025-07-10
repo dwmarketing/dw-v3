@@ -45,7 +45,14 @@ const App = () => (
                               </PermissionWrapper>
                             } 
                           />
-                          <Route path="/ai-agents" element={<AIAgents />} />
+                          <Route 
+                            path="/ai-agents" 
+                            element={
+                              <PermissionWrapper requirePage="ai-agents" fallback={<NotFound />}>
+                                <AIAgents />
+                              </PermissionWrapper>
+                            } 
+                          />
                           <Route path="/ai-agents/training" element={<AIAgentTraining />} />
                           <Route 
                             path="/users" 

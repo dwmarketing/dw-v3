@@ -14,7 +14,8 @@ const menuItems = [{
 }, {
   title: "Agente de IA - Copy",
   url: "/ai-agents",
-  icon: Bot
+  icon: Bot,
+  requirePage: "ai-agents"
 }, {
   title: "Business Managers",
   url: "/business-managers",
