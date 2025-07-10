@@ -22,10 +22,11 @@ export const CreateUserButton: React.FC<CreateUserButtonProps> = ({ onUserCreate
     <>
       <Button
         onClick={() => setIsCreateModalOpen(true)}
-        className="bg-sky-500 hover:bg-sky-600 text-white"
+        className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition-all duration-200 hover:shadow-xl"
+        size="default"
       >
         <Plus className="w-4 h-4 mr-2" />
-        Criar Usuário
+        Adicionar Usuário
       </Button>
 
       <UserForm
