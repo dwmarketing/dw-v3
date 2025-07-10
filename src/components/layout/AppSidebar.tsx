@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { BarChart3, Users, LogOut, Settings, Bot } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const menuItems = [{
   title: "Performance",
   url: "/dashboard",
-  icon: BarChart3
+  icon: BarChart3,
+  requirePage: "creatives" // Performance page shows creatives by default
 }, {
   title: "Agente de IA - Copy",
   url: "/ai-agents",
@@ -17,12 +19,12 @@ const menuItems = [{
   title: "Business Managers",
   url: "/business-managers",
   icon: Settings,
-  requireAdmin: true
+  requirePage: "business-managers"
 }, {
   title: "Usuários",
   url: "/users",
   icon: Users,
-  requireAdmin: true
+  requirePage: "users"
 }];
 
 export function AppSidebar() {
@@ -32,7 +34,16 @@ export function AppSidebar() {
     isAdmin,
     signOut
   } = useAuth();
-  const filteredMenuItems = menuItems.filter(item => !item.requireAdmin || isAdmin);
+  const { hasPermission } = usePermissions();
+  
+  const filteredMenuItems = menuItems.filter(item => {
+    // Page permission items
+    if (item.requirePage && !hasPermission(item.requirePage)) {
+      return false;
+    }
+    
+    return true;
+  });
   
   return <Sidebar className="bg-slate-950 border-slate-800">
       <SidebarHeader className="p-6 bg-slate-900 flex items-center justify-center">

@@ -8,6 +8,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { PermissionWrapper } from "@/components/common/PermissionWrapper";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import Dashboard from "./pages/Dashboard";
 import AIAgents from "./pages/AIAgents";
@@ -36,23 +37,30 @@ const App = () => (
                         <AppSidebar />
                         <Routes>
                           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                          <Route path="/dashboard" element={<Dashboard />} />
+                          <Route 
+                            path="/dashboard" 
+                            element={
+                              <PermissionWrapper requirePage="creatives" fallback={<NotFound />}>
+                                <Dashboard />
+                              </PermissionWrapper>
+                            } 
+                          />
                           <Route path="/ai-agents" element={<AIAgents />} />
                           <Route path="/ai-agents/training" element={<AIAgentTraining />} />
                           <Route 
                             path="/users" 
                             element={
-                              <ProtectedRoute requireAdmin={true}>
+                              <PermissionWrapper requirePage="users" fallback={<NotFound />}>
                                 <Dashboard />
-                              </ProtectedRoute>
+                              </PermissionWrapper>
                             } 
                           />
                           <Route 
                             path="/business-managers" 
                             element={
-                              <ProtectedRoute requireAdmin={true}>
+                              <PermissionWrapper requirePage="business-managers" fallback={<NotFound />}>
                                 <Dashboard />
-                              </ProtectedRoute>
+                              </PermissionWrapper>
                             } 
                           />
                           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
