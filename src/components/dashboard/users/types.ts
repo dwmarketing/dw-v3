@@ -9,11 +9,11 @@ export interface UserWithPermissions {
   updated_at: string | null;
   role: "admin" | "user" | "business_manager";
   permissions: {
-    page: "creatives" | "sales" | "affiliates" | "revenue" | "users" | "business-managers" | "subscriptions" | "ai-agents";
+    page: "creatives" | "sales" | "affiliates" | "revenue" | "users" | "business-managers" | "subscriptions" | "ai-agents" | "performance";
     can_access: boolean;
   }[];
   user_page_permissions: {
-    page: "creatives" | "sales" | "affiliates" | "revenue" | "users" | "business-managers" | "subscriptions" | "ai-agents";
+    page: "creatives" | "sales" | "affiliates" | "revenue" | "users" | "business-managers" | "subscriptions" | "ai-agents" | "performance";
     can_access: boolean;
   }[];
 }

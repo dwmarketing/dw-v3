@@ -40,7 +40,7 @@ const App = () => (
                           <Route 
                             path="/dashboard" 
                             element={
-                              <PermissionWrapper requirePage="creatives" fallback={<NotFound />}>
+                              <PermissionWrapper requirePage="performance" fallback={<NotFound />}>
                                 <Dashboard />
                               </PermissionWrapper>
                             } 

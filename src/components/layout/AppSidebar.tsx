@@ -10,7 +10,7 @@ const menuItems = [{
   title: "Performance",
   url: "/dashboard",
   icon: BarChart3,
-  requirePage: "creatives" // Performance page shows creatives by default
+  requirePage: "performance"
 }, {
   title: "Agente de IA - Copy",
   url: "/ai-agents",
