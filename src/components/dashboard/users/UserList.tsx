@@ -11,10 +11,11 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit, Trash2, Eye } from "lucide-react";
+import { Search, Edit, Trash2, Eye } from "lucide-react";
 import { UserForm } from "./UserForm";
 import { DeleteUserDialog } from "./DeleteUserDialog";
 import { UserDetailModal } from "./UserDetailModal";
+import { CreateUserButton } from "./CreateUserButton";
 import { UserWithPermissions } from './types';
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,7 +32,6 @@ export const UserList: React.FC<UserListProps> = ({
 }) => {
   const [users, setUsers] = useState<UserWithPermissions[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -147,13 +147,7 @@ export const UserList: React.FC<UserListProps> = ({
           className="max-w-md bg-neutral-700 text-white placeholder:text-slate-400 border-neutral-600 focus-visible:ring-neutral-500"
         />
         {currentUserRole === 'admin' && (
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-sky-500 hover:bg-sky-600 text-white"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Usuário
-          </Button>
+          <CreateUserButton onUserCreated={handleUserUpdate} />
         )}
       </div>
 
@@ -234,9 +228,8 @@ export const UserList: React.FC<UserListProps> = ({
 
       <UserForm
         user={selectedUser}
-        isOpen={isCreateModalOpen || isEditModalOpen}
+        isOpen={isEditModalOpen}
         onClose={() => {
-          setIsCreateModalOpen(false);
           setIsEditModalOpen(false);
           setSelectedUser(undefined);
         }}
