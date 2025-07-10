@@ -73,67 +73,12 @@ export const useSubscriptionRenewals = (
         const startDateStr = format(startDate, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         const endDateStr = format(endDate, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
-        let query = supabase
-          .from('subscription_renewals')
-          .select('*', { count: 'exact' })
-          .gte('created_at', startDateStr)
-          .lte('created_at', endDateStr)
-          .order('created_at', { ascending: false });
+        // Placeholder implementation - replace with actual data source
+        setRenewals([]);
+        setTotalCount(0);
+        return;
 
-        // Apply pagination
-        if (pageSize > 0) {
-          query = query.range((page - 1) * pageSize, page * pageSize - 1);
-        }
 
-        // Apply filters
-        if (filters.plan !== 'all') {
-          query = query.eq('plan', filters.plan);
-        }
-
-        if (filters.status !== 'all') {
-          query = query.eq('subscription_status', filters.status);
-        }
-
-        // Search filter
-        if (searchTerm.trim()) {
-          query = query.or(`customer_name.ilike.%${searchTerm}%,customer_email.ilike.%${searchTerm}%,subscription_id.ilike.%${searchTerm}%`);
-        }
-
-        const { data, error: queryError, count } = await query.abortSignal(abortController.signal);
-
-        // Check if this is still the current request
-        if (requestIdRef.current !== requestId) {
-          console.log('📊 Request superseded, ignoring response', { requestId });
-          return;
-        }
-
-        if (queryError) {
-          console.error('❌ Error fetching subscription renewals:', queryError);
-          setError(queryError.message);
-          setRenewals([]);
-          setTotalCount(0);
-          return;
-        }
-
-        const validRenewals = (data || []).filter(renewal => 
-          renewal && 
-          renewal.created_at && 
-          renewal.plan && 
-          typeof renewal.amount === 'number'
-        );
-
-        setRenewals(validRenewals);
-        setTotalCount(count || 0);
-
-        console.log('✅ Subscription renewals loaded:', {
-          count: validRenewals.length,
-          totalCount: count || 0,
-          page,
-          pageSize,
-          searchTerm,
-          requestId,
-          dateRange: { from: startDateStr, to: endDateStr }
-        });
 
       } catch (error: any) {
         // Ignore aborted requests

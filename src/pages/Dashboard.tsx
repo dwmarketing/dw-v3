@@ -28,7 +28,7 @@ const Dashboard = () => {
     isAdmin
   } = useAuth();
   const {
-    canAccessPage
+    hasPermission
   } = usePermissions();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState(() => {
@@ -73,7 +73,7 @@ const Dashboard = () => {
 
   // Verificar acesso às páginas especiais
   if (location.pathname === '/users') {
-    if (!isAdmin && !canAccessPage('users')) {
+    if (!isAdmin && !hasPermission('users')) {
       return <SidebarInset>
           <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
             <div className="text-center">
@@ -108,7 +108,7 @@ const Dashboard = () => {
       </SidebarInset>;
   }
   if (location.pathname === '/business-managers') {
-    if (!isAdmin && !canAccessPage('business-managers')) {
+    if (!isAdmin && !hasPermission('business-managers')) {
       return <SidebarInset>
           <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
             <div className="text-center">

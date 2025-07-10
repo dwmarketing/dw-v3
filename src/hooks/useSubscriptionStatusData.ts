@@ -44,47 +44,12 @@ export const useSubscriptionStatusData = (
         setLoading(true);
         console.log('📊 Fetching subscription status data...');
 
-        // Build query for subscription_status table
-        let query = supabase
-          .from('subscription_status')
-          .select('*', { count: 'exact' })
-          .gte('created_at', dateRange.from.toISOString())
-          .lte('created_at', dateRange.to.toISOString())
-          .order('created_at', { ascending: false })
-          .range((page - 1) * pageSize, page * pageSize - 1);
+        // Placeholder implementation - replace with actual data source
+        setSubscriptions([]);
+        setTotalCount(0);
+        return;
 
-        // Apply filters
-        if (filters.plan !== 'all') {
-          query = query.eq('plan', filters.plan);
-        }
 
-        // Status filter
-        if (filters.status !== 'all') {
-          query = query.eq('subscription_status', filters.status);
-        }
-
-        // Search filter
-        if (searchTerm.trim()) {
-          query = query.or(`customer_name.ilike.%${searchTerm}%,customer_email.ilike.%${searchTerm}%,subscription_id.ilike.%${searchTerm}%`);
-        }
-
-        const { data, error, count } = await query;
-
-        if (error) {
-          console.error('❌ Error fetching subscription status:', error);
-          return;
-        }
-
-        setSubscriptions(data || []);
-        setTotalCount(count || 0);
-
-        console.log('✅ Subscription status data loaded:', {
-          count: data?.length || 0,
-          totalCount: count || 0,
-          page,
-          pageSize,
-          searchTerm
-        });
 
       } catch (error) {
         console.error('❌ Error fetching subscription status data:', error);

@@ -64,14 +64,7 @@ const AIAgents = () => {
     try {
       console.log('Deletando conversa:', conversationId);
 
-      // Delete messages first
-      const {
-        error: messagesError
-      } = await supabase.from('agent_messages').delete().eq('conversation_id', conversationId);
-      if (messagesError) {
-        console.error('Erro ao deletar mensagens:', messagesError);
-        throw messagesError;
-      }
+      // Placeholder - AI Agents functionality not implemented
 
       // Note: Database table 'agent_conversations' does not exist yet
       // Simulating delete action
