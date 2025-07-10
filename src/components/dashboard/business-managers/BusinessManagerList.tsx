@@ -45,20 +45,16 @@ export const BusinessManagerList: React.FC<BusinessManagerListProps> = ({ refres
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('business_manager_accounts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      setBusinessManagers(data || []);
+      // Note: Database table 'business_manager_accounts' does not exist yet
+      // Showing empty state for now
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setBusinessManagers([]);
     } catch (error: any) {
       toast({
-        title: "Erro",
-        description: "Erro ao carregar Business Managers",
-        variant: "destructive"
+        title: "Info",
+        description: "Tabela ainda não criada. Dados não disponíveis.",
+        variant: "default"
       });
     } finally {
       setLoading(false);
@@ -79,16 +75,14 @@ export const BusinessManagerList: React.FC<BusinessManagerListProps> = ({ refres
     if (!confirm('Tem certeza que deseja excluir esta conta de anúncio?')) return;
 
     try {
-      const { error } = await supabase
-        .from('business_manager_accounts')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      // Note: Database table 'business_manager_accounts' does not exist yet
+      // Simulate delete action
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       toast({
-        title: "Sucesso",
-        description: "Conta de anúncio excluída com sucesso!"
+        title: "Aviso",
+        description: "Ação simulada. Tabela do banco de dados ainda não criada.",
+        variant: "default"
       });
 
       fetchBusinessManagers();

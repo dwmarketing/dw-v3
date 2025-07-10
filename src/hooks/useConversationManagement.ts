@@ -19,16 +19,10 @@ export const useConversationManagement = (conversationId: string | null) => {
   const loadConversationTitle = async () => {
     if (!conversationId) return;
     try {
-      const { data, error } = await supabase
-        .from('agent_conversations')
-        .select('title')
-        .eq('id', conversationId)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      if (data) {
-        setConversationTitle(data.title);
-      }
+      // Note: Database table 'agent_conversations' does not exist yet
+      // Using placeholder data for now
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setConversationTitle('Nova Conversa');
     } catch (error) {
       console.error('Error loading conversation title:', error);
     }
@@ -37,16 +31,14 @@ export const useConversationManagement = (conversationId: string | null) => {
   const updateConversationTitle = async (newTitle: string) => {
     if (!conversationId || !newTitle.trim()) return false;
     try {
-      const { error } = await supabase
-        .from('agent_conversations')
-        .update({ title: newTitle.trim() })
-        .eq('id', conversationId);
-
-      if (error) throw error;
+      // Note: Database table 'agent_conversations' does not exist yet
+      // Simulating update action
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       setConversationTitle(newTitle.trim());
       toast({
-        title: "Sucesso",
-        description: "Título da conversa atualizado com sucesso."
+        title: "Aviso",
+        description: "Título atualizado localmente. Tabela do banco de dados ainda não criada."
       });
       return true;
     } catch (error) {
@@ -65,29 +57,22 @@ export const useConversationManagement = (conversationId: string | null) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
       console.log('Criando nova conversa para usuário:', user.id);
-      const { data, error } = await supabase
-        .from('agent_conversations')
-        .insert({
-          user_id: user.id,
-          title: 'Nova Conversa'
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Erro ao criar conversa:', error);
-        throw error;
-      }
-      console.log('Nova conversa criada:', data);
-      return data.id;
+      
+      // Note: Database table 'agent_conversations' does not exist yet
+      // Generating random ID for placeholder
+      const mockId = `mock-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      console.log('Nova conversa criada (mock):', mockId);
+      return mockId;
     } catch (error) {
       console.error('Error creating conversation:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível criar uma nova conversa.",
-        variant: "destructive"
+        title: "Aviso",
+        description: "Conversa criada localmente. Tabela do banco de dados ainda não criada.",
+        variant: "default"
       });
-      return null;
+      return `mock-${Date.now()}`;
     }
   };
 

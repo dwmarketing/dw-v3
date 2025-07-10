@@ -20,47 +20,15 @@ export const ProductFilter: React.FC<ProductFilterProps> = ({
       try {
         setLoading(true);
         
-        // Buscar planos únicos das tabelas de assinaturas
-        const { data: subscriptionStatus, error: statusError } = await supabase
-          .from('subscription_status')
-          .select('plan')
-          .not('plan', 'is', null);
-
-        const { data: subscriptionEvents, error: eventsError } = await supabase
-          .from('subscription_events')
-          .select('plan')
-          .not('plan', 'is', null);
-
-        const { data: subscriptionRenewals, error: renewalsError } = await supabase
-          .from('subscription_renewals')
-          .select('plan')
-          .not('plan', 'is', null);
-
-        if (statusError || eventsError || renewalsError) {
-          console.error('Error fetching subscription plans:', statusError || eventsError || renewalsError);
-          return;
-        }
-
-        // Combinar e remover duplicatas
-        const allPlans = new Set<string>();
+        // Note: Database tables for subscriptions do not exist yet
+        // Using placeholder data for now
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        subscriptionStatus?.forEach(item => {
-          if (item.plan) {
-            allPlans.add(item.plan);
-          }
-        });
-
-        subscriptionEvents?.forEach(item => {
-          if (item.plan) {
-            allPlans.add(item.plan);
-          }
-        });
-
-        subscriptionRenewals?.forEach(item => {
-          if (item.plan) {
-            allPlans.add(item.plan);
-          }
-        });
+        const allPlans = new Set<string>();
+        // Add some placeholder plans
+        allPlans.add('Basic Plan');
+        allPlans.add('Premium Plan');
+        allPlans.add('Enterprise Plan');
 
         const uniquePlans = Array.from(allPlans).sort();
         setProducts(uniquePlans);

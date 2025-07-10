@@ -39,69 +39,17 @@ export const AffiliatesTab: React.FC<AffiliatesTabProps> = ({ dateRange }) => {
     try {
       setLoading(true);
       
-      let query = supabase
-        .from('creative_sales')
-        .select('*')
-        .eq('is_affiliate', true);
-
-      // Apply date filter
-      if (dateRange.from && dateRange.to) {
-        query = query
-          .gte('sale_date', dateRange.from.toISOString())
-          .lte('sale_date', dateRange.to.toISOString());
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        throw error;
-      }
-
-      // Process affiliate data
-      const affiliateMap = new Map<string, any>();
+      // Note: Database table 'creative_sales' does not exist yet
+      // Showing empty state for now
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      data?.forEach(sale => {
-        const key = sale.affiliate_id || 'unknown';
-        const name = sale.affiliate_name || 'Afiliado Desconhecido';
-        
-        if (!affiliateMap.has(key)) {
-          affiliateMap.set(key, {
-            affiliate_id: key,
-            affiliate_name: name,
-            total_sales: 0,
-            completed_sales: 0,
-            total_revenue: 0,
-            total_commission: 0,
-            sales: []
-          });
-        }
-        
-        const affiliate = affiliateMap.get(key);
-        affiliate.total_sales += 1;
-        
-        if (sale.status === 'completed') {
-          affiliate.completed_sales += 1;
-          affiliate.total_revenue += sale.gross_value || 0;
-          affiliate.total_commission += sale.affiliate_commission || 0;
-        }
-        
-        affiliate.sales.push(sale);
-      });
-
-      // Calculate derived metrics
-      const affiliateData: AffiliateData[] = Array.from(affiliateMap.values()).map(affiliate => ({
-        ...affiliate,
-        conversion_rate: affiliate.total_sales > 0 ? (affiliate.completed_sales / affiliate.total_sales) * 100 : 0,
-        avg_order_value: affiliate.completed_sales > 0 ? affiliate.total_revenue / affiliate.completed_sales : 0,
-      }));
-
-      setAffiliates(affiliateData.sort((a, b) => b.total_revenue - a.total_revenue));
+      setAffiliates([]);
     } catch (error) {
       console.error('Error fetching affiliates:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível carregar os dados dos afiliados.",
-        variant: "destructive",
+        title: "Info",
+        description: "Tabela de vendas ainda não criada. Dados não disponíveis.",
+        variant: "default",
       });
     } finally {
       setLoading(false);

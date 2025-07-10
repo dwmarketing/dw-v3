@@ -29,73 +29,19 @@ export const GeneralSettings: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadConfiguration();
-  }, []);
-
-  const loadConfiguration = async () => {
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('agent_configurations')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      
-      if (data) {
-        setConfig(data);
-      }
-    } catch (error) {
-      console.error('Error loading configuration:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar as configurações.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Note: Database table 'agent_configurations' does not exist yet
+  // This component uses local state for now
 
   const saveConfiguration = async () => {
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      const configData = {
-        ...config,
-        user_id: user.id
-      };
-
-      if (config.id) {
-        const { error } = await supabase
-          .from('agent_configurations')
-          .update(configData)
-          .eq('id', config.id);
-        
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase
-          .from('agent_configurations')
-          .insert(configData)
-          .select()
-          .single();
-        
-        if (error) throw error;
-        if (data) {
-          setConfig(data);
-        }
-      }
-
+      // Simulate save action
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       toast({
-        title: "Sucesso",
-        description: "Configurações salvas com sucesso!"
+        title: "Aviso",
+        description: "Configurações salvas localmente. Tabela do banco de dados ainda não criada.",
+        variant: "default"
       });
     } catch (error) {
       console.error('Error saving configuration:', error);

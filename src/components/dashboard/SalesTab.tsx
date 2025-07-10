@@ -57,42 +57,17 @@ export const SalesTab: React.FC<SalesTabProps> = ({ dateRange }) => {
     try {
       setLoading(true);
       
-      let query = supabase
-        .from('creative_sales')
-        .select('*');
-
-      // Apply date filter with proper timezone handling
-      if (dateRange.from && dateRange.to) {
-        // Get the start and end of the selected days in local time
-        const startDate = startOfDay(dateRange.from);
-        const endDate = endOfDay(dateRange.to);
-        
-        // Format dates to ISO string in local timezone
-        const startDateStr = format(startDate, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-        const endDateStr = format(endDate, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-
-        console.log('Sales date filtering - Start:', startDateStr, 'End:', endDateStr);
-        console.log('Original date range - From:', dateRange.from, 'To:', dateRange.to);
-
-        query = query
-          .gte('sale_date', startDateStr)
-          .lte('sale_date', endDateStr);
-      }
-
-      const { data, error } = await query.order('sale_date', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      console.log('Fetched sales data:', data?.length);
-      setSales(data || []);
+      // Note: Database table 'creative_sales' does not exist yet
+      // Showing empty state for now
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setSales([]);
     } catch (error) {
       console.error('Error fetching sales:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível carregar os dados de vendas.",
-        variant: "destructive",
+        title: "Info",
+        description: "Tabela de vendas ainda não criada. Dados não disponíveis.",
+        variant: "default",
       });
     } finally {
       setLoading(false);
