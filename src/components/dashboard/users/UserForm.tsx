@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
@@ -374,25 +374,25 @@ export const UserForm: React.FC<UserFormProps> = ({
             <TabsContent value="pages" className="space-y-4">
               <div>
                 <Label>Permissões de Página</Label>
-                <div className="grid grid-cols-2 gap-3 mt-2">
+                <div className="space-y-3 mt-2">
                   {PAGES.map((page) => (
-                    <div key={page} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={page}
+                    <div key={page} className="flex items-center justify-between">
+                      <Label htmlFor={`page-${page}`} className="capitalize">
+                        {page.replace('-', ' ')}
+                      </Label>
+                      <Switch
+                        id={`page-${page}`}
                         checked={formData.permissions[page] || false}
                         onCheckedChange={(checked) => {
                           setFormData(prev => ({
                             ...prev,
                             permissions: {
                               ...prev.permissions,
-                              [page]: checked === true
+                              [page]: checked
                             }
                           }));
                         }}
                       />
-                      <Label htmlFor={page} className="capitalize text-sm">
-                        {page.replace('-', ' ')}
-                      </Label>
                     </div>
                   ))}
                 </div>
@@ -402,25 +402,25 @@ export const UserForm: React.FC<UserFormProps> = ({
             <TabsContent value="charts" className="space-y-4">
               <div>
                 <Label>Permissões de Gráficos</Label>
-                <div className="grid grid-cols-1 gap-3 mt-2 max-h-60 overflow-y-auto">
+                <div className="space-y-3 mt-2 max-h-60 overflow-y-auto">
                   {CHARTS.map((chart) => (
-                    <div key={chart} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={chart}
+                    <div key={chart} className="flex items-center justify-between">
+                      <Label htmlFor={`chart-${chart}`} className="text-sm">
+                        {chartLabels[chart]}
+                      </Label>
+                      <Switch
+                        id={`chart-${chart}`}
                         checked={formData.chartPermissions[chart] || false}
                         onCheckedChange={(checked) => {
                           setFormData(prev => ({
                             ...prev,
                             chartPermissions: {
                               ...prev.chartPermissions,
-                              [chart]: checked === true
+                              [chart]: checked
                             }
                           }));
                         }}
                       />
-                      <Label htmlFor={chart} className="text-sm">
-                        {chartLabels[chart]}
-                      </Label>
                     </div>
                   ))}
                 </div>
