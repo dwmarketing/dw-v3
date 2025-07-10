@@ -13,14 +13,14 @@ export const PermissionWrapper: React.FC<PermissionWrapperProps> = ({
   requirePage,
   fallback = null
 }) => {
-  const { canAccessPage, loading } = usePermissions();
+  const { hasPermission, loading } = usePermissions();
 
   if (loading) {
     return null;
   }
 
   // Verificar permissão de página se especificado
-  if (requirePage && !canAccessPage(requirePage)) {
+  if (requirePage && !hasPermission(requirePage)) {
     return <>{fallback}</>;
   }
 
