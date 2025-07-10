@@ -48,7 +48,7 @@ export const UserList: React.FC<UserListProps> = ({
     try {
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name, email, username, avatar_url, created_at, updated_at');
+        .select('id, full_name, username, avatar_url, created_at, updated_at');
 
       if (profilesError) {
         console.error("Error fetching profiles:", profilesError);
@@ -97,7 +97,7 @@ export const UserList: React.FC<UserListProps> = ({
         return {
           id: profile.id,
           full_name: profile.full_name,
-          email: profile.email,
+          email: null, // Campo não disponível na tabela profiles
           username: profile.username,
           avatar_url: profile.avatar_url,
           created_at: profile.created_at,
@@ -132,7 +132,7 @@ export const UserList: React.FC<UserListProps> = ({
     const searchTermLower = searchTerm.toLowerCase();
     return (
       (user.full_name && user.full_name.toLowerCase().includes(searchTermLower)) ||
-      (user.email && user.email.toLowerCase().includes(searchTermLower))
+      (user.username && user.username.toLowerCase().includes(searchTermLower))
     );
   });
 
@@ -156,20 +156,33 @@ export const UserList: React.FC<UserListProps> = ({
           <TableHeader>
             <TableRow className="border-slate-700 hover:bg-slate-800/50">
               <TableHead className="text-slate-300">Nome</TableHead>
-              <TableHead className="text-slate-300">Email</TableHead>
+              <TableHead className="text-slate-300">Nome de Usuário</TableHead>
               <TableHead className="text-slate-300">Função</TableHead>
               <TableHead className="text-slate-300">Criado em</TableHead>
               <TableHead className="text-slate-300">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredUsers.map((user) => (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-slate-400 py-8">
+                  Carregando usuários...
+                </TableCell>
+              </TableRow>
+            ) : filteredUsers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-slate-400 py-8">
+                  Nenhum usuário encontrado.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredUsers.map((user) => (
               <TableRow key={user.id} className="border-slate-700 hover:bg-slate-800/30">
                 <TableCell className="text-white">
                   {user.full_name || 'N/A'}
                 </TableCell>
                 <TableCell className="text-slate-300">
-                  {user.email || 'N/A'}
+                  {user.username || 'N/A'}
                 </TableCell>
                 <TableCell>
                   <Badge className="bg-sky-500 hover:bg-sky-600">
@@ -221,7 +234,8 @@ export const UserList: React.FC<UserListProps> = ({
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
