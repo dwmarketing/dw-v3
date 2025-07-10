@@ -1,43 +1,37 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-interface PagePermission {
-  page: string;
-  can_access: boolean;
-}
-
-interface Permissions {
-  pages: PagePermission[];
-}
-
 export const usePermissions = () => {
-  const { user, isAdmin } = useAuth();
-  const [permissions, setPermissions] = useState<Permissions>({
-    pages: []
-  });
+  const { user } = useAuth();
+  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchPermissions = async () => {
       if (!user) {
+        setPermissions({});
         setLoading(false);
         return;
       }
 
       try {
-        // Buscar apenas permissões de páginas
-        const { data: pagePermissions } = await supabase
+        const { data, error } = await supabase
           .from('user_page_permissions')
           .select('page, can_access')
           .eq('user_id', user.id);
 
-        setPermissions({
-          pages: pagePermissions || []
+        if (error) throw error;
+
+        const permissionsMap: Record<string, boolean> = {};
+        data?.forEach(permission => {
+          permissionsMap[permission.page] = permission.can_access;
         });
+
+        setPermissions(permissionsMap);
       } catch (error) {
-        console.error('Error fetching permissions:', error);
+        console.error('Error loading permissions:', error);
+        setPermissions({});
       } finally {
         setLoading(false);
       }
@@ -46,17 +40,13 @@ export const usePermissions = () => {
     fetchPermissions();
   }, [user]);
 
-  const canAccessPage = (page: string): boolean => {
-    // Admins têm acesso total
-    if (isAdmin) return true;
-    
-    const permission = permissions.pages.find(p => p.page === page);
-    return permission ? permission.can_access : false;
+  const hasPermission = (page: string): boolean => {
+    return permissions[page] === true;
   };
 
   return {
     permissions,
     loading,
-    canAccessPage
+    hasPermission
   };
 };
