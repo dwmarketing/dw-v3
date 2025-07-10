@@ -1,7 +1,7 @@
 import React from 'react';
 import { DollarSign, TrendingUp, Target, ShoppingCart } from "lucide-react";
 import { KPICard } from "./KPICard";
-import { PermissionWrapper } from "@/components/common/PermissionWrapper";
+import { ChartPermissionWrapper } from "@/components/common/ChartPermissionWrapper";
 
 interface MonthlyKPIs {
   totalSpent: number;
@@ -22,8 +22,8 @@ export const KPICardsWithPermissions: React.FC<KPICardsWithPermissionsProps> = (
 }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-      {/* Card de Total Investido - visível para usuários com permissão "creatives" */}
-      <PermissionWrapper requirePage="creatives">
+      {/* Card de Total Investido - permissão granular */}
+      <ChartPermissionWrapper requireChart="kpi_total_investido">
         <KPICard 
           title="Total Investido" 
           value={loading ? "Carregando..." : `R$ ${kpis.totalSpent.toLocaleString('pt-BR', {
@@ -34,10 +34,10 @@ export const KPICardsWithPermissions: React.FC<KPICardsWithPermissionsProps> = (
           trend="up" 
           variant="black" 
         />
-      </PermissionWrapper>
+      </ChartPermissionWrapper>
 
-      {/* Card de Receita - visível para usuários com permissão "sales" */}
-      <PermissionWrapper requirePage="sales">
+      {/* Card de Receita - permissão granular */}
+      <ChartPermissionWrapper requireChart="kpi_receita">
         <KPICard 
           title="Receita" 
           value={loading ? "Carregando..." : `R$ ${kpis.totalRevenue.toLocaleString('pt-BR', {
@@ -48,10 +48,10 @@ export const KPICardsWithPermissions: React.FC<KPICardsWithPermissionsProps> = (
           trend="up" 
           variant="success" 
         />
-      </PermissionWrapper>
+      </ChartPermissionWrapper>
 
-      {/* Card de Ticket Médio - visível para usuários com permissão "sales" */}
-      <PermissionWrapper requirePage="sales">
+      {/* Card de Ticket Médio - permissão granular */}
+      <ChartPermissionWrapper requireChart="kpi_ticket_medio">
         <KPICard 
           title="Ticket Médio" 
           value={loading ? "Carregando..." : `R$ ${kpis.avgTicket.toLocaleString('pt-BR', {
@@ -62,10 +62,10 @@ export const KPICardsWithPermissions: React.FC<KPICardsWithPermissionsProps> = (
           trend="up" 
           variant="info" 
         />
-      </PermissionWrapper>
+      </ChartPermissionWrapper>
 
-      {/* Card de Total de Pedidos - visível para usuários com permissão "sales" */}
-      <PermissionWrapper requirePage="sales">
+      {/* Card de Total de Pedidos - permissão granular */}
+      <ChartPermissionWrapper requireChart="kpi_total_pedidos">
         <KPICard 
           title="Total de Pedidos" 
           value={loading ? "Carregando..." : kpis.totalOrders.toLocaleString()} 
@@ -74,7 +74,7 @@ export const KPICardsWithPermissions: React.FC<KPICardsWithPermissionsProps> = (
           trend="up" 
           variant="purple" 
         />
-      </PermissionWrapper>
+      </ChartPermissionWrapper>
     </div>
   );
 };

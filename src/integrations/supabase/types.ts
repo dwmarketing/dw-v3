@@ -41,6 +41,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_chart_permissions: {
+        Row: {
+          can_access: boolean
+          chart_type: Database["public"]["Enums"]["chart_type"]
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          can_access?: boolean
+          chart_type: Database["public"]["Enums"]["chart_type"]
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          can_access?: boolean
+          chart_type?: Database["public"]["Enums"]["chart_type"]
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_page_permissions: {
         Row: {
           can_access: boolean
@@ -91,6 +115,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_default_chart_permissions: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _user_id: string
