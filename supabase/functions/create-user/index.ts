@@ -116,7 +116,8 @@ serve(async (req) => {
       user_metadata: {
         full_name: formData.fullName
       },
-      email_confirm: true
+      email_confirm: true, // Confirma automaticamente sem enviar email
+      auto_confirm: true    // Confirma automaticamente
     })
 
     if (createError) {
@@ -212,7 +213,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         user: userData.user,
-        message: 'Usuário criado com sucesso!'
+        message: 'Conta criada com sucesso! Aguarde a aprovação do administrador para ativar o acesso.'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

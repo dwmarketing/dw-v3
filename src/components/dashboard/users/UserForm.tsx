@@ -355,7 +355,7 @@ export const UserForm: React.FC<UserFormProps> = ({
 
         toast({
           title: "Sucesso!",
-          description: "Usuário criado com sucesso.",
+          description: data?.message || "Conta criada com sucesso! Aguarde a aprovação do administrador para ativar o acesso.",
         });
       }
 
