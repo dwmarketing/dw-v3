@@ -222,18 +222,25 @@ export const UserForm: React.FC<UserFormProps> = ({
     e.preventDefault();
     setLoading(true);
 
+    console.log('Form submission started with data:', formData);
+    console.log('User ID:', user?.id);
+    console.log('is_active value:', formData.is_active);
+
     try {
       if (user) {
         // Update existing user
-        const { error: profileError } = await supabase
+        console.log('Updating profile with is_active:', formData.is_active);
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .update({
             full_name: formData.full_name,
             username: formData.username,
             is_active: formData.is_active,
           })
-          .eq('id', user.id);
+          .eq('id', user.id)
+          .select();
 
+        console.log('Profile update result:', { profileData, profileError });
         if (profileError) throw profileError;
 
         // Update role
@@ -390,18 +397,25 @@ export const UserForm: React.FC<UserFormProps> = ({
           </div>
 
           {user && (
-            <div className="flex items-center space-x-2 p-4 border rounded-lg">
+            <div className="flex items-center space-x-2 p-4 border rounded-lg bg-muted/50">
               <Switch
                 id="user-status"
                 checked={formData.is_active}
                 onCheckedChange={(checked) => {
-                  setFormData(prev => ({ ...prev, is_active: checked }));
+                  console.log('Switch toggled to:', checked);
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    is_active: checked 
+                  }));
                 }}
                 disabled={loading}
               />
               <Label htmlFor="user-status" className="text-sm font-medium">
-                {formData.is_active ? 'Usuário Ativo' : 'Usuário Inativo'}
+                Status: {formData.is_active ? 'Usuário Ativo' : 'Usuário Inativo'}
               </Label>
+              <div className="ml-auto text-xs text-muted-foreground">
+                Valor atual: {String(formData.is_active)}
+              </div>
             </div>
           )}
 
