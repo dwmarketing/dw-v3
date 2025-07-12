@@ -30,9 +30,42 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   onUserUpdate 
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [userEmail, setUserEmail] = useState<string>('');
   const { toast } = useToast();
 
   if (!user) return null;
+
+  // Buscar email do usuário quando o modal abrir
+  React.useEffect(() => {
+    const fetchUserEmail = async () => {
+      if (!user?.id || !isOpen) return;
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('get-user-email', {
+          body: { userId: user.id }
+        });
+
+        if (error) {
+          console.error('Error fetching user email:', error);
+          setUserEmail('Erro ao carregar email');
+          return;
+        }
+
+        if (data?.error) {
+          console.error('Function returned error:', data.error);
+          setUserEmail('Email protegido');
+          return;
+        }
+
+        setUserEmail(data?.email || 'Email não encontrado');
+      } catch (error) {
+        console.error('Error fetching user email:', error);
+        setUserEmail('N/A');
+      }
+    };
+
+    fetchUserEmail();
+  }, [user?.id, isOpen]);
 
   const getRoleBadge = (role: string) => {
     const colors = {
@@ -112,15 +145,15 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               </div>
               
               <div>
+                <Label>Email</Label>
+                <Input value={userEmail || 'N/A'} readOnly className="bg-neutral-700" />
+              </div>
+              
+              <div>
                 <Label>Role</Label>
                 <div className="pt-2">
                   {getRoleBadge(user.role)}
                 </div>
-              </div>
-              
-              <div>
-                <Label>Email</Label>
-                <Input value={user.email || 'N/A'} readOnly />
               </div>
               
               <div>
