@@ -132,7 +132,11 @@ export const UserForm: React.FC<UserFormProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
+    console.log('useEffect triggered with user:', user);
+
     if (user) {
+      console.log('Initializing form with user data, is_active:', user.is_active);
+      
       // Create a complete permissions object with all pages
       const userPermissions = PAGES.reduce((acc, page) => {
         const permission = user.user_page_permissions?.find(p => p.page === page);
@@ -140,22 +144,25 @@ export const UserForm: React.FC<UserFormProps> = ({
         return acc;
       }, {} as Record<UserPage, boolean>);
 
-      // Initialize form with user data
-      setFormData({
+      // Initialize form with user data - ensuring is_active is properly set
+      const initialFormData = {
         full_name: user.full_name || '',
         email: user.email || '',
         username: user.username || '',
         password: '', // Password is not shown for existing users
         role: user.role,
-        is_active: user.is_active,
+        is_active: Boolean(user.is_active), // Ensure boolean conversion
         permissions: userPermissions,
         chartPermissions: {} as Record<ChartType, boolean> // Will be set by fetchUserChartPermissions
-      });
+      };
+
+      console.log('Setting initial form data:', initialFormData);
+      setFormData(initialFormData);
 
       // Fetch additional data
       fetchUserChartPermissions(user.id);
       
-      // Fetch user email
+      // Fetch user email (separate from main state to avoid conflicts)
       const fetchUserEmail = async () => {
         try {
           const { data, error } = await supabase.functions.invoke('get-user-email', {
@@ -176,6 +183,7 @@ export const UserForm: React.FC<UserFormProps> = ({
 
           const email = data?.email || 'Email não encontrado';
           setUserEmail(email);
+          // Only update email field, don't interfere with other form data
           setFormData(prev => ({
             ...prev,
             email: email
@@ -183,15 +191,13 @@ export const UserForm: React.FC<UserFormProps> = ({
         } catch (error) {
           console.error('Error fetching user email:', error);
           setUserEmail('N/A');
-          setFormData(prev => ({
-            ...prev,
-            email: 'N/A'
-          }));
         }
       };
 
       fetchUserEmail();
     } else {
+      console.log('Initializing form for new user');
+      
       // Default permissions for new users - ensure all pages are included
       const defaultPermissions = PAGES.reduce((acc, page) => {
         acc[page] = page !== 'users'; // All pages except users
@@ -204,16 +210,19 @@ export const UserForm: React.FC<UserFormProps> = ({
         return acc;
       }, {} as Record<ChartType, boolean>);
 
-      setFormData({
+      const newUserFormData = {
         full_name: '',
         email: '',
         username: '',
         password: '',
-        role: 'user',
+        role: 'user' as AppRole,
         is_active: true,
         permissions: defaultPermissions,
         chartPermissions: defaultChartPermissions
-      });
+      };
+
+      console.log('Setting form data for new user:', newUserFormData);
+      setFormData(newUserFormData);
       setUserEmail('');
     }
   }, [user, isOpen]);
@@ -241,7 +250,15 @@ export const UserForm: React.FC<UserFormProps> = ({
           .select();
 
         console.log('Profile update result:', { profileData, profileError });
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error('Profile update error:', profileError);
+          throw new Error(`Erro ao atualizar perfil: ${profileError.message}`);
+        }
+
+        // Verify the update was successful
+        if (profileData && profileData.length > 0) {
+          console.log('Profile successfully updated to:', profileData[0]);
+        }
 
         // Update role
         const { error: roleError } = await supabase
@@ -400,21 +417,25 @@ export const UserForm: React.FC<UserFormProps> = ({
             <div className="flex items-center space-x-2 p-4 border rounded-lg bg-muted/50">
               <Switch
                 id="user-status"
-                checked={formData.is_active}
+                checked={Boolean(formData.is_active)}
                 onCheckedChange={(checked) => {
-                  console.log('Switch toggled to:', checked);
-                  setFormData(prev => ({ 
-                    ...prev, 
-                    is_active: checked 
-                  }));
+                  console.log('Switch toggled from', formData.is_active, 'to:', checked);
+                  setFormData(prev => {
+                    const newData = { 
+                      ...prev, 
+                      is_active: checked 
+                    };
+                    console.log('New form data after switch:', newData);
+                    return newData;
+                  });
                 }}
                 disabled={loading}
               />
-              <Label htmlFor="user-status" className="text-sm font-medium">
+              <Label htmlFor="user-status" className="text-sm font-medium cursor-pointer">
                 Status: {formData.is_active ? 'Usuário Ativo' : 'Usuário Inativo'}
               </Label>
               <div className="ml-auto text-xs text-muted-foreground">
-                Valor atual: {String(formData.is_active)}
+                DB Value: {String(user.is_active)} | Form: {String(formData.is_active)}
               </div>
             </div>
           )}
