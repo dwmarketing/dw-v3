@@ -114,10 +114,13 @@ export const UserForm: React.FC<UserFormProps> = ({
         return acc;
       }, {} as Record<ChartType, boolean>);
 
-      setFormData(prev => ({
-        ...prev,
-        chartPermissions: chartPermissionsMap
-      }));
+      setFormData(prev => {
+        console.log('Updating chart permissions, preserving is_active:', prev.is_active);
+        return {
+          ...prev,
+          chartPermissions: chartPermissionsMap
+        };
+      });
     } catch (error) {
       console.error('Error fetching chart permissions:', error);
       toast({
@@ -135,7 +138,7 @@ export const UserForm: React.FC<UserFormProps> = ({
     console.log('useEffect triggered with user:', user);
 
     if (user) {
-      console.log('Initializing form with user data, is_active:', user.is_active);
+      console.log('Initializing form with user data, is_active:', user.is_active, 'type:', typeof user.is_active);
       
       // Create a complete permissions object with all pages
       const userPermissions = PAGES.reduce((acc, page) => {
@@ -144,6 +147,10 @@ export const UserForm: React.FC<UserFormProps> = ({
         return acc;
       }, {} as Record<UserPage, boolean>);
 
+      // Ensure is_active is properly converted to boolean
+      const isActiveValue = Boolean(user.is_active);
+      console.log('Converted is_active value:', isActiveValue);
+
       // Initialize form with user data - ensuring is_active is properly set
       const initialFormData = {
         full_name: user.full_name || '',
@@ -151,12 +158,12 @@ export const UserForm: React.FC<UserFormProps> = ({
         username: user.username || '',
         password: '', // Password is not shown for existing users
         role: user.role,
-        is_active: Boolean(user.is_active), // Ensure boolean conversion
+        is_active: isActiveValue,
         permissions: userPermissions,
         chartPermissions: {} as Record<ChartType, boolean> // Will be set by fetchUserChartPermissions
       };
 
-      console.log('Setting initial form data:', initialFormData);
+      console.log('Setting initial form data with is_active:', initialFormData.is_active);
       setFormData(initialFormData);
 
       // Fetch additional data
@@ -184,10 +191,13 @@ export const UserForm: React.FC<UserFormProps> = ({
           const email = data?.email || 'Email não encontrado';
           setUserEmail(email);
           // Only update email field, don't interfere with other form data
-          setFormData(prev => ({
-            ...prev,
-            email: email
-          }));
+          setFormData(prev => {
+            console.log('Updating email, preserving is_active:', prev.is_active);
+            return {
+              ...prev,
+              email: email
+            };
+          });
         } catch (error) {
           console.error('Error fetching user email:', error);
           setUserEmail('N/A');
