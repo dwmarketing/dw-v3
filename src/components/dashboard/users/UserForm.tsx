@@ -91,6 +91,7 @@ export const UserForm: React.FC<UserFormProps> = ({
     full_name: '',
     email: '',
     username: '',
+    password: '',
     role: 'user' as AppRole,
     permissions: {} as Record<UserPage, boolean>,
     chartPermissions: {} as Record<ChartType, boolean>
@@ -139,6 +140,7 @@ export const UserForm: React.FC<UserFormProps> = ({
         full_name: user.full_name || '',
         email: user.email || '',
         username: user.username || '',
+        password: '', // Password is not shown for existing users
         role: user.role,
         permissions: userPermissions,
         chartPermissions: {} as Record<ChartType, boolean> // Will be set by fetchUserChartPermissions
@@ -160,6 +162,7 @@ export const UserForm: React.FC<UserFormProps> = ({
         full_name: '',
         email: '',
         username: '',
+        password: '',
         role: 'user',
         permissions: defaultPermissions,
         chartPermissions: defaultChartPermissions
@@ -225,69 +228,26 @@ export const UserForm: React.FC<UserFormProps> = ({
           description: "Usuário atualizado com sucesso.",
         });
       } else {
-        // Create new user via Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-          email: formData.email,
-          email_confirm: true,
-          user_metadata: {
-            full_name: formData.full_name,
+        // Create new user via Edge Function
+        const { data, error } = await supabase.functions.invoke('create-user', {
+          body: {
+            email: formData.email,
+            password: formData.password,
+            fullName: formData.full_name, // Changed from full_name to fullName to match edge function
             username: formData.username,
-            role: formData.role
+            role: formData.role,
+            permissions: formData.permissions,
+            chartPermissions: formData.chartPermissions
           }
         });
 
-        if (authError) throw authError;
+        if (error) {
+          throw new Error(error.message || 'Failed to create user');
+        }
 
-        const userId = authData.user?.id;
-        if (!userId) throw new Error('Failed to create user');
-
-        // Create profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: userId,
-            full_name: formData.full_name,
-            email: formData.email,
-            username: formData.username,
-          });
-
-        if (profileError) throw profileError;
-
-        // Set role
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: userId,
-            role: formData.role,
-          });
-
-        if (roleError) throw roleError;
-
-        // Set permissions
-        const permissionInserts = PAGES.map(page => ({
-          user_id: userId,
-          page: page as UserPage,
-          can_access: formData.permissions[page as UserPage]
-        }));
-
-        const { error: permError } = await supabase
-          .from('user_page_permissions')
-          .insert(permissionInserts);
-
-        if (permError) throw permError;
-
-        // Set chart permissions
-        const chartPermissionInserts = CHARTS.map(chart => ({
-          user_id: userId,
-          chart_type: chart as ChartType,
-          can_access: formData.chartPermissions[chart as ChartType]
-        }));
-
-        const { error: chartPermError } = await supabase
-          .from('user_chart_permissions')
-          .insert(chartPermissionInserts);
-
-        if (chartPermError) throw chartPermError;
+        if (data?.error) {
+          throw new Error(data.error);
+        }
 
         toast({
           title: "Sucesso!",
@@ -350,6 +310,21 @@ export const UserForm: React.FC<UserFormProps> = ({
               required
             />
           </div>
+
+          {!user && (
+            <div>
+              <Label htmlFor="password">Senha</Label>
+              <Input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                required
+                minLength={6}
+                placeholder="Mínimo 6 caracteres"
+              />
+            </div>
+          )}
 
           <div>
             <Label htmlFor="role">Role</Label>

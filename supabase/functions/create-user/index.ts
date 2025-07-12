@@ -156,12 +156,11 @@ serve(async (req) => {
     }
 
     // Set page permissions
-    const pagePermissions = Object.entries(formData.pagePermissions || {})
-      .filter(([_, canAccess]) => canAccess)
+    const pagePermissions = Object.entries(formData.permissions || {})
       .map(([page, canAccess]) => ({
         user_id: userData.user.id,
-        page: page as 'creatives' | 'sales' | 'affiliates' | 'revenue' | 'users',
-        can_access: canAccess
+        page: page as 'creatives' | 'sales' | 'affiliates' | 'revenue' | 'users' | 'business-managers' | 'subscriptions' | 'ai-agents' | 'performance',
+        can_access: canAccess as boolean
       }))
 
     if (pagePermissions.length > 0) {
@@ -182,13 +181,11 @@ serve(async (req) => {
     }
 
     // Set chart permissions
-    const chartPermissions = (formData.chartPermissions || [])
-      .filter((permission: any) => permission.canView)
-      .map((permission: any) => ({
+    const chartPermissions = Object.entries(formData.chartPermissions || {})
+      .map(([chartType, canAccess]) => ({
         user_id: userData.user.id,
-        chart_type: permission.chartType as 'performance_overview' | 'time_series' | 'top_creatives' | 'metrics_comparison' | 'conversion_funnel' | 'roi_analysis' | 'sales_summary' | 'affiliate_performance' | 'revenue_breakdown' | 'creatives_sales',
-        page: permission.page as 'creatives' | 'sales' | 'affiliates' | 'revenue',
-        can_view: permission.canView
+        chart_type: chartType as any,
+        can_access: canAccess as boolean
       }))
 
     if (chartPermissions.length > 0) {
