@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,20 +10,28 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { UserWithPermissions } from './types';
 import { ChartPermissions } from "./ChartPermissions";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserDetailModalProps {
   user?: UserWithPermissions;
   isOpen: boolean;
   onClose: () => void;
+  onUserUpdate?: () => void;
 }
 
 export const UserDetailModal: React.FC<UserDetailModalProps> = ({ 
   user, 
   isOpen, 
-  onClose 
+  onClose,
+  onUserUpdate 
 }) => {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const { toast } = useToast();
+
   if (!user) return null;
 
   const getRoleBadge = (role: string) => {
@@ -33,6 +41,40 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
       user: "bg-green-600 hover:bg-green-700"
     };
     return <Badge className={colors[role as keyof typeof colors] || "bg-gray-600"}>{role}</Badge>;
+  };
+
+  const handleStatusToggle = async (checked: boolean) => {
+    if (isUpdating) return;
+    
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_active: checked })
+        .eq('id', user.id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Sucesso!",
+        description: `Usuário ${checked ? 'ativado' : 'desativado'} com sucesso.`,
+      });
+
+      if (onUserUpdate) {
+        onUserUpdate();
+      }
+    } catch (error: any) {
+      console.error('Error updating user status:', error);
+      toast({
+        title: "Erro!",
+        description: `Falha ao ${checked ? 'ativar' : 'desativar'} usuário: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -50,6 +92,19 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           </TabsList>
           
           <TabsContent value="info" className="space-y-4">
+            <div className="flex items-center space-x-2 p-4 border rounded-lg">
+              <Switch
+                id="user-status"
+                checked={user.is_active}
+                onCheckedChange={handleStatusToggle}
+                disabled={isUpdating}
+              />
+              <Label htmlFor="user-status" className="text-sm font-medium">
+                {user.is_active ? 'Usuário Ativo' : 'Usuário Inativo'}
+              </Label>
+              {isUpdating && <span className="text-sm text-gray-500">Atualizando...</span>}
+            </div>
+            
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Nome Completo</Label>

@@ -129,44 +129,6 @@ export const UserList: React.FC<UserListProps> = ({
     }
   };
 
-  const handleToggleUserStatus = async (user: UserWithPermissions) => {
-    try {
-      console.log('Toggling user status:', { userId: user.id, currentStatus: user.is_active, newStatus: !user.is_active });
-      
-      const { data, error } = await supabase.functions.invoke('activate-user', {
-        body: {
-          userId: user.id,
-          isActive: !user.is_active
-        }
-      });
-
-      console.log('Function response:', { data, error });
-
-      if (error) {
-        console.error('Function invoke error:', error);
-        throw new Error(error.message || 'Failed to update user status');
-      }
-
-      if (data?.error) {
-        console.error('Function returned error:', data.error);
-        throw new Error(data.error);
-      }
-
-      toast({
-        title: "Sucesso!",
-        description: `Usuário ${!user.is_active ? 'ativado' : 'desativado'} com sucesso.`,
-      });
-      
-      handleUserUpdate();
-    } catch (error: any) {
-      console.error('Error toggling user status:', error);
-      toast({
-        title: "Erro!",
-        description: `Falha ao ${!user.is_active ? 'ativar' : 'desativar'} usuário: ${error.message}`,
-        variant: "destructive",
-      });
-    }
-  };
 
   const filteredUsers = users.filter(user => {
     const searchTermLower = searchTerm.toLowerCase();
@@ -231,21 +193,9 @@ export const UserList: React.FC<UserListProps> = ({
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Badge className={user.is_active ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}>
-                      {user.is_active ? 'Ativo' : 'Inativo'}
-                    </Badge>
-                    {currentUserRole === 'admin' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleToggleUserStatus(user)}
-                        className="text-xs px-2 py-1 h-6"
-                      >
-                        {user.is_active ? 'Desativar' : 'Ativar'}
-                      </Button>
-                    )}
-                  </div>
+                  <Badge className={user.is_active ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}>
+                    {user.is_active ? 'Ativo' : 'Inativo'}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-slate-300">
                   {new Date(user.created_at || '').toLocaleDateString()}
@@ -325,6 +275,7 @@ export const UserList: React.FC<UserListProps> = ({
           setIsDetailModalOpen(false);
           setSelectedUser(undefined);
         }}
+        onUserUpdate={handleUserUpdate}
       />
     </div>
   );
