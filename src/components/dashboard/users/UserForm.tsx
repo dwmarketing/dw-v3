@@ -21,6 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
 import { UserWithPermissions } from './types';
 import type { Database } from '@/integrations/supabase/types';
+import { KeyRound } from "lucide-react";
 
 type UserPage = Database['public']['Enums']['user_page'];
 type AppRole = Database['public']['Enums']['app_role'];
@@ -88,6 +89,9 @@ export const UserForm: React.FC<UserFormProps> = ({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [userEmail, setUserEmail] = useState<string>('');
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -374,6 +378,64 @@ export const UserForm: React.FC<UserFormProps> = ({
     }
   };
 
+  const handlePasswordReset = async () => {
+    if (!user?.id) return;
+
+    if (!newPassword.trim()) {
+      toast({
+        title: "Erro!",
+        description: "Por favor, digite uma nova senha.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Erro!",
+        description: "A senha deve ter pelo menos 6 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsResettingPassword(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('update-user-password', {
+        body: {
+          userId: user.id,
+          newPassword: newPassword
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: "Sucesso!",
+        description: "Senha redefinida com sucesso.",
+      });
+
+      setNewPassword('');
+      setShowPasswordReset(false);
+    } catch (error: any) {
+      console.error('Error resetting password:', error);
+      toast({
+        title: "Erro!",
+        description: `Falha ao redefinir senha: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -465,6 +527,48 @@ export const UserForm: React.FC<UserFormProps> = ({
               <Label htmlFor="user-status" className="text-sm font-medium cursor-pointer">
                 Status: {formData.is_active ? 'Usuário Ativo' : 'Usuário Inativo'}
               </Label>
+            </div>
+          )}
+
+          {user && (
+            <div className="p-4 border rounded-lg bg-muted/50 space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Redefinir Senha</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPasswordReset(!showPasswordReset)}
+                  className="flex items-center gap-2"
+                >
+                  <KeyRound className="h-4 w-4" />
+                  {showPasswordReset ? 'Cancelar' : 'Redefinir Senha'}
+                </Button>
+              </div>
+              
+              {showPasswordReset && (
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="reset-password">Nova Senha</Label>
+                    <Input
+                      id="reset-password"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Digite a nova senha (mín. 6 caracteres)"
+                      minLength={6}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={handlePasswordReset}
+                    disabled={isResettingPassword || !newPassword.trim()}
+                    className="w-full"
+                  >
+                    {isResettingPassword ? 'Redefinindo...' : 'Confirmar Nova Senha'}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 

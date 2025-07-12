@@ -9,12 +9,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { UserWithPermissions } from './types';
 import { ChartPermissions } from "./ChartPermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { KeyRound } from "lucide-react";
 
 interface UserDetailModalProps {
   user?: UserWithPermissions;
@@ -32,6 +34,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [userEmail, setUserEmail] = useState<string>('');
   const [isActive, setIsActive] = useState(false);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const { toast } = useToast();
 
   // Buscar email do usuário quando o modal abrir
@@ -150,6 +155,62 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
     }
   };
 
+  const handlePasswordReset = async () => {
+    if (!newPassword.trim()) {
+      toast({
+        title: "Erro!",
+        description: "Por favor, digite uma nova senha.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Erro!",
+        description: "A senha deve ter pelo menos 6 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsResettingPassword(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('update-user-password', {
+        body: {
+          userId: user.id,
+          newPassword: newPassword
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: "Sucesso!",
+        description: "Senha redefinida com sucesso.",
+      });
+
+      setNewPassword('');
+      setShowPasswordReset(false);
+    } catch (error: any) {
+      console.error('Error resetting password:', error);
+      toast({
+        title: "Erro!",
+        description: `Falha ao redefinir senha: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -165,6 +226,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           </TabsList>
           
           <TabsContent value="info" className="space-y-4">
+            
             <div className="flex items-center space-x-2 p-4 border rounded-lg">
               <Switch
                 id="user-status"
@@ -176,6 +238,44 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 {isActive ? 'Usuário Ativo' : 'Usuário Inativo'}
               </Label>
               {isUpdating && <span className="text-sm text-gray-500">Atualizando...</span>}
+            </div>
+
+            <div className="p-4 border rounded-lg space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Redefinir Senha</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPasswordReset(!showPasswordReset)}
+                  className="flex items-center gap-2"
+                >
+                  <KeyRound className="h-4 w-4" />
+                  {showPasswordReset ? 'Cancelar' : 'Redefinir Senha'}
+                </Button>
+              </div>
+              
+              {showPasswordReset && (
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="new-password">Nova Senha</Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Digite a nova senha (mín. 6 caracteres)"
+                      minLength={6}
+                    />
+                  </div>
+                  <Button
+                    onClick={handlePasswordReset}
+                    disabled={isResettingPassword || !newPassword.trim()}
+                    className="w-full"
+                  >
+                    {isResettingPassword ? 'Redefinindo...' : 'Confirmar Nova Senha'}
+                  </Button>
+                </div>
+              )}
             </div>
             
             <div className="grid grid-cols-2 gap-4">
