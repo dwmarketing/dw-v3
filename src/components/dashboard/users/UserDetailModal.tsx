@@ -177,6 +177,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
     setIsResettingPassword(true);
     
     try {
+      console.log('Sending password reset request for user:', user.id);
+      console.log('New password length:', newPassword.length);
+      
       const { data, error } = await supabase.functions.invoke('update-user-password', {
         body: {
           userId: user.id,
@@ -184,11 +187,15 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
         }
       });
 
+      console.log('Function response:', { data, error });
+
       if (error) {
+        console.error('Supabase function error:', error);
         throw error;
       }
 
       if (data?.error) {
+        console.error('Function returned error:', data.error);
         throw new Error(data.error);
       }
 
@@ -201,9 +208,28 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
       setShowPasswordReset(false);
     } catch (error: any) {
       console.error('Error resetting password:', error);
+      console.error('Error details:', {
+        name: error?.name,
+        message: error?.message,
+        status: error?.status,
+        context: error?.context
+      });
+      
+      let errorMessage = 'Erro desconhecido';
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.context?.body) {
+        try {
+          const bodyError = JSON.parse(error.context.body);
+          errorMessage = bodyError.error || bodyError.message || 'Erro na função';
+        } catch {
+          errorMessage = 'Erro na comunicação com o servidor';
+        }
+      }
+      
       toast({
         title: "Erro!",
-        description: `Falha ao redefinir senha: ${error.message}`,
+        description: `Falha ao redefinir senha: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {

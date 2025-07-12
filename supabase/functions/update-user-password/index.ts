@@ -13,6 +13,8 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  console.log('Password update function called - Method:', req.method)
+
   try {
     console.log('Starting password update function...')
     
@@ -68,7 +70,7 @@ serve(async (req) => {
       .eq('user_id', currentUser.id)
       .single()
 
-    if (!userRole || !['admin', 'manager'].includes(userRole.role)) {
+    if (!userRole || !['admin', 'business_manager'].includes(userRole.role)) {
       console.error('User does not have permission to update passwords')
       return new Response(
         JSON.stringify({ error: 'Insufficient permissions' }),
@@ -82,7 +84,22 @@ serve(async (req) => {
     console.log('User has permission:', userRole.role)
 
     // Parse request body
-    const { userId, newPassword } = await req.json()
+    let requestData;
+    try {
+      requestData = await req.json();
+      console.log('Request data received:', requestData);
+    } catch (parseError) {
+      console.error('Error parsing JSON:', parseError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const { userId, newPassword } = requestData;
     
     if (!userId || !newPassword) {
       console.error('Missing required fields:', { userId: !!userId, newPassword: !!newPassword })
@@ -135,9 +152,16 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Unexpected error:', error)
+    console.error('Unexpected error in password update function:', error)
+    console.error('Error type:', typeof error)
+    console.error('Error message:', error?.message)
+    console.error('Error stack:', error?.stack)
+    
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ 
+        error: error?.message || 'Internal server error',
+        details: 'Check function logs for more information'
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
