@@ -135,7 +135,8 @@ serve(async (req) => {
       .from('profiles')
       .update({
         username: formData.username || null,
-        phone: formData.phone || null
+        phone: formData.phone || null,
+        is_active: false  // Set as inactive by default
       })
       .eq('id', userData.user.id)
 

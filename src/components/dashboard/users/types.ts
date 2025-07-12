@@ -7,6 +7,7 @@ export interface UserWithPermissions {
   avatar_url: string | null;
   created_at: string | null;
   updated_at: string | null;
+  is_active: boolean;
   role: "admin" | "user" | "business_manager";
   permissions: {
     page: "creatives" | "sales" | "affiliates" | "revenue" | "users" | "business-managers" | "subscriptions" | "ai-agents" | "performance";

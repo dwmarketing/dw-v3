@@ -48,7 +48,7 @@ export const UserList: React.FC<UserListProps> = ({
     try {
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name, username, avatar_url, created_at, updated_at');
+        .select('id, full_name, username, avatar_url, created_at, updated_at, is_active');
 
       if (profilesError) {
         console.error("Error fetching profiles:", profilesError);
@@ -102,6 +102,7 @@ export const UserList: React.FC<UserListProps> = ({
           avatar_url: profile.avatar_url,
           created_at: profile.created_at,
           updated_at: profile.updated_at,
+          is_active: profile.is_active,
           role: role,
           permissions: userPermissions,
           user_page_permissions: userPermissions
@@ -125,6 +126,38 @@ export const UserList: React.FC<UserListProps> = ({
     fetchUsers();
     if (onUserUpdated) {
       onUserUpdated();
+    }
+  };
+
+  const handleToggleUserStatus = async (user: UserWithPermissions) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('activate-user', {
+        body: {
+          userId: user.id,
+          isActive: !user.is_active
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to update user status');
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: "Sucesso!",
+        description: `Usuário ${!user.is_active ? 'ativado' : 'desativado'} com sucesso.`,
+      });
+      
+      handleUserUpdate();
+    } catch (error: any) {
+      toast({
+        title: "Erro!",
+        description: `Falha ao ${!user.is_active ? 'ativar' : 'desativar'} usuário: ${error.message}`,
+        variant: "destructive",
+      });
     }
   };
 
@@ -158,6 +191,7 @@ export const UserList: React.FC<UserListProps> = ({
               <TableHead className="text-slate-300">Nome</TableHead>
               <TableHead className="text-slate-300">Nome de Usuário</TableHead>
               <TableHead className="text-slate-300">Função</TableHead>
+              <TableHead className="text-slate-300">Status</TableHead>
               <TableHead className="text-slate-300">Criado em</TableHead>
               <TableHead className="text-slate-300">Ações</TableHead>
             </TableRow>
@@ -165,13 +199,13 @@ export const UserList: React.FC<UserListProps> = ({
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-slate-400 py-8">
+                <TableCell colSpan={6} className="text-center text-slate-400 py-8">
                   Carregando usuários...
                 </TableCell>
               </TableRow>
             ) : filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-slate-400 py-8">
+                <TableCell colSpan={6} className="text-center text-slate-400 py-8">
                   Nenhum usuário encontrado.
                 </TableCell>
               </TableRow>
@@ -188,6 +222,23 @@ export const UserList: React.FC<UserListProps> = ({
                   <Badge className="bg-sky-500 hover:bg-sky-600">
                     {user.role}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Badge className={user.is_active ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}>
+                      {user.is_active ? 'Ativo' : 'Inativo'}
+                    </Badge>
+                    {currentUserRole === 'admin' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleToggleUserStatus(user)}
+                        className="text-xs px-2 py-1 h-6"
+                      >
+                        {user.is_active ? 'Desativar' : 'Ativar'}
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-slate-300">
                   {new Date(user.created_at || '').toLocaleDateString()}

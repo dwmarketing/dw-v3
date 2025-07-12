@@ -163,25 +163,57 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [toast]);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    // Show welcome message only on successful login from auth page
-    if (!error && window.location.pathname === '/auth') {
-      setTimeout(() => {
-        toast({
-          title: "Bem-vindo!",
-          description: "Login realizado com sucesso.",
-        });
-        
-        // Redirect to dashboard
-        window.location.href = '/dashboard';
-      }, 500);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      // Check if user is active
+      if (data.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('is_active')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError) {
+          console.error('Error checking user activation status:', profileError);
+          return { error: { message: 'Erro ao verificar status do usuário' } };
+        }
+
+        if (!profile?.is_active) {
+          // Sign out the user immediately
+          await supabase.auth.signOut();
+          return { 
+            error: { 
+              message: 'Sua conta está inativa. Entre em contato com o administrador para ativação.' 
+            } 
+          };
+        }
+      }
+      
+      // Show welcome message only on successful login from auth page
+      if (window.location.pathname === '/auth') {
+        setTimeout(() => {
+          toast({
+            title: "Bem-vindo!",
+            description: "Login realizado com sucesso.",
+          });
+          
+          // Redirect to dashboard
+          window.location.href = '/dashboard';
+        }, 500);
+      }
+      
+      return { error: null };
+    } catch (error: any) {
+      return { error };
     }
-    
-    return { error };
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
