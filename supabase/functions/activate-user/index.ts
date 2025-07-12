@@ -15,15 +15,10 @@ serve(async (req) => {
   try {
     console.log('Activate user function called');
     
-    // Initialize Supabase clients
+    // Initialize Supabase admin client
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    const supabaseAnon = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
     // Get the authorization header
@@ -41,8 +36,8 @@ serve(async (req) => {
       );
     }
 
-    // Verify the user is authenticated
-    const { data: { user }, error: authError } = await supabaseAnon.auth.getUser(
+    // Verify the user is authenticated using admin client
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(
       authHeader.replace('Bearer ', '')
     );
 
