@@ -31,6 +31,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [userEmail, setUserEmail] = useState<string>('');
+  const [isActive, setIsActive] = useState(false);
   const { toast } = useToast();
 
   // Buscar email do usuário quando o modal abrir
@@ -65,6 +66,13 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
     fetchUserEmail();
   }, [user?.id, isOpen]);
 
+  // Sincronizar estado local com o usuário
+  React.useEffect(() => {
+    if (user) {
+      setIsActive(user.is_active);
+    }
+  }, [user]);
+
   // Early return após todos os hooks serem chamados
   if (!user) return null;
 
@@ -80,7 +88,10 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const handleStatusToggle = async (checked: boolean) => {
     if (isUpdating) return;
     
+    // Atualizar estado local imediatamente para feedback visual
+    setIsActive(checked);
     setIsUpdating(true);
+    
     try {
       const { error } = await supabase
         .from('profiles')
@@ -101,6 +112,8 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
       }
     } catch (error: any) {
       console.error('Error updating user status:', error);
+      // Reverter estado local em caso de erro
+      setIsActive(!checked);
       toast({
         title: "Erro!",
         description: `Falha ao ${checked ? 'ativar' : 'desativar'} usuário: ${error.message}`,
@@ -129,12 +142,12 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
             <div className="flex items-center space-x-2 p-4 border rounded-lg">
               <Switch
                 id="user-status"
-                checked={user.is_active}
+                checked={isActive}
                 onCheckedChange={handleStatusToggle}
                 disabled={isUpdating}
               />
               <Label htmlFor="user-status" className="text-sm font-medium">
-                {user.is_active ? 'Usuário Ativo' : 'Usuário Inativo'}
+                {isActive ? 'Usuário Ativo' : 'Usuário Inativo'}
               </Label>
               {isUpdating && <span className="text-sm text-gray-500">Atualizando...</span>}
             </div>
