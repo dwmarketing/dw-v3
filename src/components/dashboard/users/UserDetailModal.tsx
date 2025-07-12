@@ -33,8 +33,6 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const [userEmail, setUserEmail] = useState<string>('');
   const { toast } = useToast();
 
-  if (!user) return null;
-
   // Buscar email do usuário quando o modal abrir
   React.useEffect(() => {
     const fetchUserEmail = async () => {
@@ -66,6 +64,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
     fetchUserEmail();
   }, [user?.id, isOpen]);
+
+  // Early return após todos os hooks serem chamados
+  if (!user) return null;
 
   const getRoleBadge = (role: string) => {
     const colors = {
