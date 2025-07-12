@@ -36,17 +36,18 @@ serve(async (req) => {
       );
     }
 
-    // Verify the user is authenticated using admin client
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    // Extract the JWT token and verify it manually using admin client
+    const token = authHeader.replace('Bearer ', '');
+    console.log('Token received:', token ? 'Yes' : 'No');
 
-    console.log('User authentication result:', { userId: user?.id, authError });
+    // Verify the JWT token directly using admin client
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    console.log('Auth verification result:', { userId: user?.id, authError: authError?.message });
 
     if (authError || !user) {
-      console.log('Authentication failed:', authError);
+      console.log('Authentication failed:', authError?.message);
       return new Response(
-        JSON.stringify({ error: 'Authentication failed' }),
+        JSON.stringify({ error: 'Authentication failed - invalid or expired token' }),
         { 
           status: 401, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -54,14 +55,14 @@ serve(async (req) => {
       );
     }
 
-    // Check if the user is an admin
+    // Check if the user is an admin using admin client
     const { data: userRole, error: roleError } = await supabaseAdmin
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .single();
 
-    console.log('User role check:', { userRole, roleError });
+    console.log('User role check:', { userRole: userRole?.role, roleError: roleError?.message });
 
     if (roleError || userRole?.role !== 'admin') {
       console.log('Access denied - not admin:', userRole?.role);
