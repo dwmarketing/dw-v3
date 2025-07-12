@@ -48,7 +48,7 @@ export function AppSidebar() {
   
   return <Sidebar className="bg-slate-950 border-slate-800">
       <SidebarHeader className="p-6 bg-slate-900 flex items-center justify-center">
-        <img src="/lovable-uploads/7d2bb631-1daa-4855-9350-e0d2e5a31475.png" alt="Logo da Empresa" className="h-32 w-auto max-w-[70%] object-contain" />
+        <img src="/lovable-uploads/85422dbf-ef79-4fba-96e3-bbdb6e14bdc7.png" alt="DN Marketing" className="h-32 w-auto max-w-[70%] object-contain" />
       </SidebarHeader>
       <SidebarContent className="bg-slate-900">
         <SidebarGroup>
