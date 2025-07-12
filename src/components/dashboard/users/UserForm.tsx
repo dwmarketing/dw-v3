@@ -465,9 +465,6 @@ export const UserForm: React.FC<UserFormProps> = ({
               <Label htmlFor="user-status" className="text-sm font-medium cursor-pointer">
                 Status: {formData.is_active ? 'Usuário Ativo' : 'Usuário Inativo'}
               </Label>
-              <div className="ml-auto text-xs text-muted-foreground">
-                DB Value: {String(user.is_active)} | Form: {String(formData.is_active)}
-              </div>
             </div>
           )}
 
@@ -479,7 +476,45 @@ export const UserForm: React.FC<UserFormProps> = ({
             
             <TabsContent value="pages" className="space-y-4">
               <div>
-                <Label>Permissões de Página</Label>
+                <div className="flex items-center justify-between mb-4">
+                  <Label>Permissões de Página</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const allSelected = PAGES.reduce((acc, page) => {
+                          acc[page] = true;
+                          return acc;
+                        }, {} as Record<UserPage, boolean>);
+                        setFormData(prev => ({
+                          ...prev,
+                          permissions: allSelected
+                        }));
+                      }}
+                    >
+                      Marcar Tudo
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const allDeselected = PAGES.reduce((acc, page) => {
+                          acc[page] = false;
+                          return acc;
+                        }, {} as Record<UserPage, boolean>);
+                        setFormData(prev => ({
+                          ...prev,
+                          permissions: allDeselected
+                        }));
+                      }}
+                    >
+                      Desmarcar Tudo
+                    </Button>
+                  </div>
+                </div>
                 <div className="space-y-3 mt-2">
                   {PAGES.map((page) => (
                     <div key={page} className="flex items-center justify-between">
@@ -507,7 +542,45 @@ export const UserForm: React.FC<UserFormProps> = ({
             
             <TabsContent value="charts" className="space-y-4">
               <div>
-                <Label>Permissões de Gráficos</Label>
+                <div className="flex items-center justify-between mb-4">
+                  <Label>Permissões de Gráficos</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const allSelected = CHARTS.reduce((acc, chart) => {
+                          acc[chart] = true;
+                          return acc;
+                        }, {} as Record<ChartType, boolean>);
+                        setFormData(prev => ({
+                          ...prev,
+                          chartPermissions: allSelected
+                        }));
+                      }}
+                    >
+                      Marcar Tudo
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const allDeselected = CHARTS.reduce((acc, chart) => {
+                          acc[chart] = false;
+                          return acc;
+                        }, {} as Record<ChartType, boolean>);
+                        setFormData(prev => ({
+                          ...prev,
+                          chartPermissions: allDeselected
+                        }));
+                      }}
+                    >
+                      Desmarcar Tudo
+                    </Button>
+                  </div>
+                </div>
                 <div className="space-y-3 mt-2 max-h-60 overflow-y-auto">
                   {CHARTS.map((chart) => (
                     <div key={chart} className="flex items-center justify-between">
