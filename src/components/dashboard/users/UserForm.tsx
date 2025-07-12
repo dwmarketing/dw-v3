@@ -87,15 +87,58 @@ export const UserForm: React.FC<UserFormProps> = ({
 }) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [userEmail, setUserEmail] = useState<string>('');
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
     username: '',
     password: '',
     role: 'user' as AppRole,
+    is_active: true,
     permissions: {} as Record<UserPage, boolean>,
     chartPermissions: {} as Record<ChartType, boolean>
   });
+
+  // Buscar email do usuário quando o modal abrir
+  useEffect(() => {
+    const fetchUserEmail = async () => {
+      if (!user?.id || !isOpen) return;
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('get-user-email', {
+          body: { userId: user.id }
+        });
+
+        if (error) {
+          console.error('Error fetching user email:', error);
+          setUserEmail('Erro ao carregar email');
+          return;
+        }
+
+        if (data?.error) {
+          console.error('Function returned error:', data.error);
+          setUserEmail('Email protegido');
+          return;
+        }
+
+        setUserEmail(data?.email || 'Email não encontrado');
+        // Atualizar o formData com o email carregado
+        setFormData(prev => ({
+          ...prev,
+          email: data?.email || 'Email não encontrado'
+        }));
+      } catch (error) {
+        console.error('Error fetching user email:', error);
+        setUserEmail('N/A');
+        setFormData(prev => ({
+          ...prev,
+          email: 'N/A'
+        }));
+      }
+    };
+
+    fetchUserEmail();
+  }, [user?.id, isOpen]);
 
   useEffect(() => {
     if (user) {
@@ -138,10 +181,11 @@ export const UserForm: React.FC<UserFormProps> = ({
 
       setFormData({
         full_name: user.full_name || '',
-        email: user.email || '',
+        email: user.email || '', // Will be updated by the email fetch useEffect
         username: user.username || '',
         password: '', // Password is not shown for existing users
         role: user.role,
+        is_active: user.is_active,
         permissions: userPermissions,
         chartPermissions: {} as Record<ChartType, boolean> // Will be set by fetchUserChartPermissions
       });
@@ -164,6 +208,7 @@ export const UserForm: React.FC<UserFormProps> = ({
         username: '',
         password: '',
         role: 'user',
+        is_active: true,
         permissions: defaultPermissions,
         chartPermissions: defaultChartPermissions
       });
@@ -182,6 +227,7 @@ export const UserForm: React.FC<UserFormProps> = ({
           .update({
             full_name: formData.full_name,
             username: formData.username,
+            is_active: formData.is_active,
           })
           .eq('id', user.id);
 
@@ -339,6 +385,22 @@ export const UserForm: React.FC<UserFormProps> = ({
               </SelectContent>
             </Select>
           </div>
+
+          {user && (
+            <div className="flex items-center space-x-2 p-4 border rounded-lg">
+              <Switch
+                id="user-status"
+                checked={formData.is_active}
+                onCheckedChange={(checked) => {
+                  setFormData(prev => ({ ...prev, is_active: checked }));
+                }}
+                disabled={loading}
+              />
+              <Label htmlFor="user-status" className="text-sm font-medium">
+                {formData.is_active ? 'Usuário Ativo' : 'Usuário Inativo'}
+              </Label>
+            </div>
+          )}
 
           <Tabs defaultValue="pages" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
