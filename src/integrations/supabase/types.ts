@@ -14,6 +14,401 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_configurations: {
+        Row: {
+          agent_description: string | null
+          agent_name: string
+          created_at: string
+          default_language: string
+          id: string
+          updated_at: string
+          user_id: string
+          voice_tone: string
+        }
+        Insert: {
+          agent_description?: string | null
+          agent_name?: string
+          created_at?: string
+          default_language?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          voice_tone?: string
+        }
+        Update: {
+          agent_description?: string | null
+          agent_name?: string
+          created_at?: string
+          default_language?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          voice_tone?: string
+        }
+        Relationships: []
+      }
+      agent_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          status: Database["public"]["Enums"]["agent_conversation_status"]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["agent_conversation_status"]
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["agent_conversation_status"]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agent_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["message_role"]
+          webhook_response: Json | null
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["message_role"]
+          webhook_response?: Json | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["message_role"]
+          webhook_response?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "agent_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_training_data: {
+        Row: {
+          created_at: string
+          data_type: string
+          description: string | null
+          file_content: string | null
+          file_name: string | null
+          file_size: number | null
+          file_type: string | null
+          file_url: string | null
+          id: string
+          link_description: string | null
+          link_title: string | null
+          link_url: string | null
+          manual_prompt: string | null
+          metadata: Json | null
+          status: Database["public"]["Enums"]["training_data_status"]
+          tab_name: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_type: string
+          description?: string | null
+          file_content?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          link_description?: string | null
+          link_title?: string | null
+          link_url?: string | null
+          manual_prompt?: string | null
+          metadata?: Json | null
+          status?: Database["public"]["Enums"]["training_data_status"]
+          tab_name: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_type?: string
+          description?: string | null
+          file_content?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          link_description?: string | null
+          link_title?: string | null
+          link_url?: string | null
+          manual_prompt?: string | null
+          metadata?: Json | null
+          status?: Database["public"]["Enums"]["training_data_status"]
+          tab_name?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      business_manager_accounts: {
+        Row: {
+          access_token: string
+          ad_account_id: string | null
+          ad_account_name: string | null
+          app_id: string | null
+          app_secret: string | null
+          bm_name: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          ad_account_id?: string | null
+          ad_account_name?: string | null
+          app_id?: string | null
+          app_secret?: string | null
+          bm_name: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          ad_account_id?: string | null
+          ad_account_name?: string | null
+          app_id?: string | null
+          app_secret?: string | null
+          bm_name?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      creative_insights: {
+        Row: {
+          ad_id: string | null
+          adset_name: string | null
+          amount_spent: number | null
+          body_rate: number | null
+          campaign_id: string | null
+          campaign_name: string | null
+          clicks: number | null
+          cost_per_click: number | null
+          cost_per_mille: number | null
+          created_at: string | null
+          creative_name: string
+          cta_rate: number | null
+          ctr: number | null
+          date_reported: string | null
+          hook_rate: number | null
+          id: string
+          impressions: number | null
+          ph_hook_rate: number | null
+          status: string | null
+          updated_at: string | null
+          views_3s: number | null
+          views_75_percent: number | null
+          views_total: number | null
+        }
+        Insert: {
+          ad_id?: string | null
+          adset_name?: string | null
+          amount_spent?: number | null
+          body_rate?: number | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          clicks?: number | null
+          cost_per_click?: number | null
+          cost_per_mille?: number | null
+          created_at?: string | null
+          creative_name: string
+          cta_rate?: number | null
+          ctr?: number | null
+          date_reported?: string | null
+          hook_rate?: number | null
+          id?: string
+          impressions?: number | null
+          ph_hook_rate?: number | null
+          status?: string | null
+          updated_at?: string | null
+          views_3s?: number | null
+          views_75_percent?: number | null
+          views_total?: number | null
+        }
+        Update: {
+          ad_id?: string | null
+          adset_name?: string | null
+          amount_spent?: number | null
+          body_rate?: number | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          clicks?: number | null
+          cost_per_click?: number | null
+          cost_per_mille?: number | null
+          created_at?: string | null
+          creative_name?: string
+          cta_rate?: number | null
+          ctr?: number | null
+          date_reported?: string | null
+          hook_rate?: number | null
+          id?: string
+          impressions?: number | null
+          ph_hook_rate?: number | null
+          status?: string | null
+          updated_at?: string | null
+          views_3s?: number | null
+          views_75_percent?: number | null
+          views_total?: number | null
+        }
+        Relationships: []
+      }
+      creative_sales: {
+        Row: {
+          affiliate_commission: number | null
+          affiliate_id: string | null
+          affiliate_name: string | null
+          comission_value_coprodutor: number | null
+          commission_value_produtor: number | null
+          country: string | null
+          created_at: string | null
+          creative_name: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          discount_value: number | null
+          gross_value: number | null
+          id: string
+          is_affiliate: boolean | null
+          net_value: number | null
+          order_id: string
+          payment_method: string
+          sale_date: string | null
+          state: string | null
+          status: string
+          tags: string[] | null
+          tax_value: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          affiliate_commission?: number | null
+          affiliate_id?: string | null
+          affiliate_name?: string | null
+          comission_value_coprodutor?: number | null
+          commission_value_produtor?: number | null
+          country?: string | null
+          created_at?: string | null
+          creative_name: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          discount_value?: number | null
+          gross_value?: number | null
+          id?: string
+          is_affiliate?: boolean | null
+          net_value?: number | null
+          order_id: string
+          payment_method: string
+          sale_date?: string | null
+          state?: string | null
+          status?: string
+          tags?: string[] | null
+          tax_value?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          affiliate_commission?: number | null
+          affiliate_id?: string | null
+          affiliate_name?: string | null
+          comission_value_coprodutor?: number | null
+          commission_value_produtor?: number | null
+          country?: string | null
+          created_at?: string | null
+          creative_name?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          discount_value?: number | null
+          gross_value?: number | null
+          id?: string
+          is_affiliate?: boolean | null
+          net_value?: number | null
+          order_id?: string
+          payment_method?: string
+          sale_date?: string | null
+          state?: string | null
+          status?: string
+          tags?: string[] | null
+          tax_value?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      product_sales: {
+        Row: {
+          created_at: string
+          id: string
+          is_subscription: boolean | null
+          order_id: string
+          product_id: string
+          product_name: string
+          sale_date: string
+          sale_value: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_subscription?: boolean | null
+          order_id: string
+          product_id: string
+          product_name: string
+          sale_date?: string
+          sale_value?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_subscription?: boolean | null
+          order_id?: string
+          product_id?: string
+          product_name?: string
+          sale_date?: string
+          sale_value?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -41,6 +436,168 @@ export type Database = {
           is_active?: boolean
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      subscription_events: {
+        Row: {
+          amount: number
+          cartpanda_event_id: string | null
+          created_at: string
+          currency: string
+          customer_email: string
+          customer_id: string
+          customer_name: string | null
+          event_date: string
+          event_type: string
+          frequency: string | null
+          id: string
+          metadata: Json | null
+          payment_method: string | null
+          plan: string
+          subscription_id: string
+          subscription_number: number | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          cartpanda_event_id?: string | null
+          created_at?: string
+          currency?: string
+          customer_email: string
+          customer_id: string
+          customer_name?: string | null
+          event_date?: string
+          event_type: string
+          frequency?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          plan: string
+          subscription_id: string
+          subscription_number?: number | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          cartpanda_event_id?: string | null
+          created_at?: string
+          currency?: string
+          customer_email?: string
+          customer_id?: string
+          customer_name?: string | null
+          event_date?: string
+          event_type?: string
+          frequency?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          plan?: string
+          subscription_id?: string
+          subscription_number?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscription_renewals: {
+        Row: {
+          amount: number
+          canceled_at: string | null
+          created_at: string
+          currency: string
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string | null
+          frequency: string | null
+          id: string
+          plan: string
+          subscription_id: string | null
+          subscription_number: number | null
+          subscription_status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          canceled_at?: string | null
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          frequency?: string | null
+          id?: string
+          plan: string
+          subscription_id?: string | null
+          subscription_number?: number | null
+          subscription_status: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          canceled_at?: string | null
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          frequency?: string | null
+          id?: string
+          plan?: string
+          subscription_id?: string | null
+          subscription_number?: number | null
+          subscription_status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscription_status: {
+        Row: {
+          amount: number
+          canceled_at: string | null
+          created_at: string
+          currency: string
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string | null
+          frequency: string | null
+          id: string
+          plan: string
+          subscription_id: string | null
+          subscription_number: number | null
+          subscription_status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          canceled_at?: string | null
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          frequency?: string | null
+          id?: string
+          plan: string
+          subscription_id?: string | null
+          subscription_number?: number | null
+          subscription_status: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          canceled_at?: string | null
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          frequency?: string | null
+          id?: string
+          plan?: string
+          subscription_id?: string | null
+          subscription_number?: number | null
+          subscription_status?: string
+          updated_at?: string
         }
         Relationships: []
       }
