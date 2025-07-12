@@ -99,53 +99,6 @@ export const UserForm: React.FC<UserFormProps> = ({
     chartPermissions: {} as Record<ChartType, boolean>
   });
 
-  // Buscar email do usuário quando o modal abrir
-  useEffect(() => {
-    const fetchUserEmail = async () => {
-      if (!user?.id || !isOpen) return;
-      
-      try {
-        const { data, error } = await supabase.functions.invoke('get-user-email', {
-          body: { userId: user.id }
-        });
-
-        if (error) {
-          console.error('Error fetching user email:', error);
-          setUserEmail('Erro ao carregar email');
-          return;
-        }
-
-        if (data?.error) {
-          console.error('Function returned error:', data.error);
-          setUserEmail('Email protegido');
-          return;
-        }
-
-        setUserEmail(data?.email || 'Email não encontrado');
-        // Atualizar o formData com o email carregado
-        setFormData(prev => ({
-          ...prev,
-          email: data?.email || 'Email não encontrado'
-        }));
-      } catch (error) {
-        console.error('Error fetching user email:', error);
-        setUserEmail('N/A');
-        setFormData(prev => ({
-          ...prev,
-          email: 'N/A'
-        }));
-      }
-    };
-
-    fetchUserEmail();
-  }, [user?.id, isOpen]);
-
-  useEffect(() => {
-    if (user) {
-      fetchUserChartPermissions(user.id);
-    }
-  }, [user]);
-
   const fetchUserChartPermissions = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -167,10 +120,18 @@ export const UserForm: React.FC<UserFormProps> = ({
       }));
     } catch (error) {
       console.error('Error fetching chart permissions:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar permissões de gráficos.",
+        variant: "destructive",
+      });
     }
   };
 
+  // Main effect to initialize form data
   useEffect(() => {
+    if (!isOpen) return;
+
     if (user) {
       // Create a complete permissions object with all pages
       const userPermissions = PAGES.reduce((acc, page) => {
@@ -179,9 +140,10 @@ export const UserForm: React.FC<UserFormProps> = ({
         return acc;
       }, {} as Record<UserPage, boolean>);
 
+      // Initialize form with user data
       setFormData({
         full_name: user.full_name || '',
-        email: user.email || '', // Will be updated by the email fetch useEffect
+        email: user.email || '',
         username: user.username || '',
         password: '', // Password is not shown for existing users
         role: user.role,
@@ -189,6 +151,46 @@ export const UserForm: React.FC<UserFormProps> = ({
         permissions: userPermissions,
         chartPermissions: {} as Record<ChartType, boolean> // Will be set by fetchUserChartPermissions
       });
+
+      // Fetch additional data
+      fetchUserChartPermissions(user.id);
+      
+      // Fetch user email
+      const fetchUserEmail = async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke('get-user-email', {
+            body: { userId: user.id }
+          });
+
+          if (error) {
+            console.error('Error fetching user email:', error);
+            setUserEmail('Erro ao carregar email');
+            return;
+          }
+
+          if (data?.error) {
+            console.error('Function returned error:', data.error);
+            setUserEmail('Email protegido');
+            return;
+          }
+
+          const email = data?.email || 'Email não encontrado';
+          setUserEmail(email);
+          setFormData(prev => ({
+            ...prev,
+            email: email
+          }));
+        } catch (error) {
+          console.error('Error fetching user email:', error);
+          setUserEmail('N/A');
+          setFormData(prev => ({
+            ...prev,
+            email: 'N/A'
+          }));
+        }
+      };
+
+      fetchUserEmail();
     } else {
       // Default permissions for new users - ensure all pages are included
       const defaultPermissions = PAGES.reduce((acc, page) => {
@@ -212,8 +214,9 @@ export const UserForm: React.FC<UserFormProps> = ({
         permissions: defaultPermissions,
         chartPermissions: defaultChartPermissions
       });
+      setUserEmail('');
     }
-  }, [user]);
+  }, [user, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
