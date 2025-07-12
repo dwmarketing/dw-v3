@@ -115,6 +115,19 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp }) => {
             {loading ? "Entrando..." : "Entrar"}
           </Button>
         </form>
+        
+        <div className="mt-4 text-center">
+          <p className="text-gray-400 text-sm">
+            Ainda não tem uma conta?{" "}
+            <button
+              type="button"
+              onClick={onSwitchToSignUp}
+              className="text-white hover:text-gray-300 underline font-medium"
+            >
+              Criar nova conta
+            </button>
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
