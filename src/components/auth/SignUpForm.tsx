@@ -60,7 +60,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToLogin }) => {
       } else {
         toast({
           title: "Cadastro realizado!",
-          description: "Verifique seu email para confirmar a conta.",
+          description: "Sua conta foi criada e está aguardando ativação por um administrador.",
         });
         onSwitchToLogin();
       }

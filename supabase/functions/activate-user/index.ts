@@ -13,6 +13,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Activate user function called');
+    
     // Initialize Supabase clients
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -26,7 +28,10 @@ serve(async (req) => {
 
     // Get the authorization header
     const authHeader = req.headers.get('Authorization');
+    console.log('Auth header present:', !!authHeader);
+    
     if (!authHeader) {
+      console.log('No authorization header provided');
       return new Response(
         JSON.stringify({ error: 'Authorization header required' }),
         { 
@@ -41,7 +46,10 @@ serve(async (req) => {
       authHeader.replace('Bearer ', '')
     );
 
+    console.log('User authentication result:', { userId: user?.id, authError });
+
     if (authError || !user) {
+      console.log('Authentication failed:', authError);
       return new Response(
         JSON.stringify({ error: 'Authentication failed' }),
         { 
@@ -58,7 +66,10 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
+    console.log('User role check:', { userRole, roleError });
+
     if (roleError || userRole?.role !== 'admin') {
+      console.log('Access denied - not admin:', userRole?.role);
       return new Response(
         JSON.stringify({ error: 'Admin access required' }),
         { 
@@ -70,8 +81,10 @@ serve(async (req) => {
 
     // Parse request body
     const { userId, isActive } = await req.json();
+    console.log('Request data:', { userId, isActive });
 
     if (!userId || typeof isActive !== 'boolean') {
+      console.log('Invalid request data:', { userId, isActive });
       return new Response(
         JSON.stringify({ error: 'userId and isActive (boolean) are required' }),
         { 
@@ -82,6 +95,7 @@ serve(async (req) => {
     }
 
     // Update user activation status
+    console.log('Updating user activation status:', { userId, isActive });
     const { error: updateError } = await supabaseAdmin
       .from('profiles')
       .update({ is_active: isActive })
@@ -97,6 +111,8 @@ serve(async (req) => {
         }
       );
     }
+
+    console.log('User activation status updated successfully');
 
     return new Response(
       JSON.stringify({ 

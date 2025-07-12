@@ -131,6 +131,8 @@ export const UserList: React.FC<UserListProps> = ({
 
   const handleToggleUserStatus = async (user: UserWithPermissions) => {
     try {
+      console.log('Toggling user status:', { userId: user.id, currentStatus: user.is_active, newStatus: !user.is_active });
+      
       const { data, error } = await supabase.functions.invoke('activate-user', {
         body: {
           userId: user.id,
@@ -138,11 +140,15 @@ export const UserList: React.FC<UserListProps> = ({
         }
       });
 
+      console.log('Function response:', { data, error });
+
       if (error) {
+        console.error('Function invoke error:', error);
         throw new Error(error.message || 'Failed to update user status');
       }
 
       if (data?.error) {
+        console.error('Function returned error:', data.error);
         throw new Error(data.error);
       }
 
@@ -153,6 +159,7 @@ export const UserList: React.FC<UserListProps> = ({
       
       handleUserUpdate();
     } catch (error: any) {
+      console.error('Error toggling user status:', error);
       toast({
         title: "Erro!",
         description: `Falha ao ${!user.is_active ? 'ativar' : 'desativar'} usuário: ${error.message}`,
