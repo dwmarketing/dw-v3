@@ -39,28 +39,32 @@ export const DeleteUserDialog: React.FC<DeleteUserDialogProps> = ({
     }
 
     try {
-      const { error } = await supabase.auth.admin.deleteUser(user.id);
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: {
+          userId: user.id
+        }
+      });
 
       if (error) {
-        toast({
-          title: "Erro!",
-          description: `Falha ao excluir usuário: ${error.message}`,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Sucesso!",
-          description: "Usuário excluído com sucesso.",
-        });
-        onClose();
-        if (onUserUpdate) {
-          onUserUpdate();
-        }
+        throw new Error(error.message || 'Failed to delete user');
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: "Sucesso!",
+        description: "Usuário excluído com sucesso.",
+      });
+      onClose();
+      if (onUserUpdate) {
+        onUserUpdate();
       }
     } catch (error: any) {
       toast({
         title: "Erro!",
-        description: `Erro inesperado: ${error.message}`,
+        description: `Falha ao excluir usuário: ${error.message}`,
         variant: "destructive",
       });
     }
