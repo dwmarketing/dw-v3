@@ -248,26 +248,47 @@ export const UserForm: React.FC<UserFormProps> = ({
     try {
       if (user) {
         // Update existing user
-        console.log('Updating profile with is_active:', formData.is_active);
+        console.log('Updating profile with is_active:', formData.is_active, 'type:', typeof formData.is_active);
+        console.log('Original user is_active:', user.is_active, 'type:', typeof user.is_active);
+        
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .update({
             full_name: formData.full_name,
             username: formData.username,
-            is_active: formData.is_active,
+            is_active: Boolean(formData.is_active), // Ensure boolean conversion
           })
           .eq('id', user.id)
-          .select();
+          .select('id, full_name, username, is_active');
 
         console.log('Profile update result:', { profileData, profileError });
         if (profileError) {
           console.error('Profile update error:', profileError);
+          console.error('Error details:', {
+            message: profileError.message,
+            code: profileError.code,
+            details: profileError.details,
+            hint: profileError.hint
+          });
           throw new Error(`Erro ao atualizar perfil: ${profileError.message}`);
         }
 
         // Verify the update was successful
         if (profileData && profileData.length > 0) {
-          console.log('Profile successfully updated to:', profileData[0]);
+          const updatedProfile = profileData[0];
+          console.log('Profile successfully updated to:', updatedProfile);
+          console.log('Final is_active value in database:', updatedProfile.is_active, 'type:', typeof updatedProfile.is_active);
+          
+          // Double-check the database state
+          const { data: verificationData, error: verificationError } = await supabase
+            .from('profiles')
+            .select('is_active')
+            .eq('id', user.id)
+            .single();
+            
+          if (!verificationError && verificationData) {
+            console.log('Database verification - is_active is:', verificationData.is_active);
+          }
         }
 
         // Update role

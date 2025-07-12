@@ -88,18 +88,37 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const handleStatusToggle = async (checked: boolean) => {
     if (isUpdating) return;
     
+    console.log('handleStatusToggle called with:', checked, 'for user:', user.id);
+    console.log('Current user is_active value:', user.is_active);
+    
     // Atualizar estado local imediatamente para feedback visual
     setIsActive(checked);
     setIsUpdating(true);
     
     try {
-      const { error } = await supabase
+      console.log('Attempting to update is_active to:', checked);
+      
+      const { data, error } = await supabase
         .from('profiles')
         .update({ is_active: checked })
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select('is_active');
 
       if (error) {
+        console.error('Supabase error updating user status:', error);
         throw error;
+      }
+
+      console.log('Update successful, returned data:', data);
+      
+      // Verificar se a atualização foi realmente persistida
+      if (data && data.length > 0) {
+        const updatedStatus = data[0].is_active;
+        console.log('Database confirmed is_active is now:', updatedStatus);
+        
+        if (updatedStatus !== checked) {
+          console.warn('Database value does not match expected value!');
+        }
       }
 
       toast({
@@ -112,6 +131,13 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
       }
     } catch (error: any) {
       console.error('Error updating user status:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
+      
       // Reverter estado local em caso de erro
       setIsActive(!checked);
       toast({
