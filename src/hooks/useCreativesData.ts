@@ -1,12 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from "@/integrations/supabase/client";
-import { format } from 'date-fns';
-import { 
-  standardizeCreativeName, 
-  createCreativeNameMapping,
-  getInsightsForCreative,
-  getSalesForCreative 
-} from './useCreativeNameStandardization';
+import { supabase } from '@/integrations/supabase/client';
+import { format, startOfDay, endOfDay } from 'date-fns';
 
 export interface CreativeMetrics {
   id: string;
@@ -49,8 +43,10 @@ export const useCreativesData = (
       try {
         console.log('📊 [CREATIVES DATA] Fetching data for date range:', dateRange);
         
-        const startDateStr = format(dateRange.from, "yyyy-MM-dd");
-        const endDateStr = format(dateRange.to, "yyyy-MM-dd");
+        const startDate = startOfDay(dateRange.from);
+        const endDate = endOfDay(dateRange.to);
+        const startDateStr = format(startDate, "yyyy-MM-dd");
+        const endDateStr = format(endDate, "yyyy-MM-dd");
 
         // Build query for creative insights
         let insightsQuery = supabase
@@ -90,18 +86,15 @@ export const useCreativesData = (
         console.log('📊 [CREATIVES DATA] Sales data fetched:', salesData?.length || 0, 'records');
         console.log('📊 [CREATIVES DATA] Creative names in sales:', [...new Set(salesData?.map(s => s.creative_name) || [])]);
 
-        // Standardize creative names and create mappings
-        const insightsNames = insightsData?.map(i => i.creative_name).filter(Boolean) || [];
-        const salesNames = salesData?.map(s => s.creative_name).filter(Boolean) || [];
-        
-        const nameMapping = createCreativeNameMapping(insightsNames, salesNames);
-        console.log('📊 [CREATIVES DATA] Name mapping created:', nameMapping.size, 'standardized names');
+        // Get all unique creative names from both datasets
+        const allCreativeNames = new Set([
+          ...(insightsData?.map(i => i.creative_name) || []),
+          ...(salesData?.map(s => s.creative_name) || [])
+        ]);
 
-        // Get all unique standardized creative names
-        const allStandardizedNames = Array.from(nameMapping.keys());
-        console.log('📊 [CREATIVES DATA] Standardized creative names:', allStandardizedNames);
+        console.log('📊 [CREATIVES DATA] All unique creative names:', Array.from(allCreativeNames));
 
-        // Group insights by original creative name to aggregate data
+        // Group insights by creative name to aggregate data
         const insightsMap = new Map<string, any[]>();
         insightsData?.forEach(insight => {
           const name = insight.creative_name;
@@ -111,7 +104,7 @@ export const useCreativesData = (
           insightsMap.get(name)!.push(insight);
         });
 
-        // Group sales by original creative name
+        // Group sales by creative name
         const salesMap = new Map<string, any[]>();
         salesData?.forEach(sale => {
           const name = sale.creative_name;
@@ -124,38 +117,16 @@ export const useCreativesData = (
         console.log('📊 [CREATIVES DATA] Insights map keys:', Array.from(insightsMap.keys()));
         console.log('📊 [CREATIVES DATA] Sales map keys:', Array.from(salesMap.keys()));
 
-        // Process and combine data for each standardized creative
+        // Process and combine data for each creative
         const processedCreatives: CreativeMetrics[] = [];
-        
-        allStandardizedNames.forEach(standardizedName => {
-          console.log(`📊 [PROCESSING] Processing standardized creative: ${standardizedName}`);
-          
-          // Get all original names that map to this standardized name
-          const mappings = nameMapping.get(standardizedName) || [];
-          const insightsNames = mappings.filter(m => m.source === 'insights').map(m => m.originalName);
-          const salesNames = mappings.filter(m => m.source === 'sales').map(m => m.originalName);
-          
-          // Collect insights from all matching names
-          let creativeInsights: any[] = [];
-          insightsNames.forEach(name => {
-            const insights = getInsightsForCreative(name, insightsMap);
-            creativeInsights = [...creativeInsights, ...insights];
-          });
-          
-          // Collect sales from all matching names
-          let creativeSales: any[] = [];
-          salesNames.forEach(name => {
-            const sales = getSalesForCreative(name, salesMap);
-            creativeSales = [...creativeSales, ...sales];
-          });
-          
-          console.log(`📊 [PROCESSING] ${standardizedName} - Insights: ${creativeInsights.length}, Sales: ${creativeSales.length}`);
 
-          // Skip if no data for this creative
-          if (creativeInsights.length === 0 && creativeSales.length === 0) {
-            console.log(`📊 [SKIP] No data for creative: ${standardizedName}`);
-            return;
-          }
+        Array.from(allCreativeNames).forEach(creativeName => {
+          if (!creativeName || creativeName.trim() === '') return;
+
+          const creativeInsights = insightsMap.get(creativeName) || [];
+          const creativeSales = salesMap.get(creativeName) || [];
+
+          console.log(`📊 [CREATIVE: ${creativeName}] Insights: ${creativeInsights.length}, Sales: ${creativeSales.length}`);
 
           // Aggregate insights data
           const aggregatedInsight = creativeInsights.reduce((acc, insight) => ({
@@ -228,7 +199,7 @@ export const useCreativesData = (
           // Get product info from tags (assuming product names might be in tags)
           const products: string[] = [];
 
-          console.log(`📊 [CREATIVE: ${standardizedName}] Final metrics:`, {
+          console.log(`📊 [CREATIVE: ${creativeName}] Final metrics:`, {
             spent,
             totalSales,
             profit,
@@ -238,8 +209,8 @@ export const useCreativesData = (
           });
 
           const creative: CreativeMetrics = {
-            id: `creative_${standardizedName.replace(/\s+/g, '_').toLowerCase()}`,
-            creative_name: standardizedName,
+            id: `creative_${creativeName.replace(/\s+/g, '_').toLowerCase()}`,
+            creative_name: creativeName,
             campaign_name: aggregatedInsight.campaign_name || '',
             start_date: aggregatedInsight.date_start ? format(new Date(aggregatedInsight.date_start), 'dd/MM/yyyy') : '',
             end_date: aggregatedInsight.date_end ? format(new Date(aggregatedInsight.date_end), 'dd/MM/yyyy') : '',
