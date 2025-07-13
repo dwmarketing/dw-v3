@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -81,26 +82,26 @@ export const useSubscriptionMetrics = (
         
         if (activeError) throw activeError;
 
-        // 2. New Subscriptions (from subscription_events where event_type = 'subscription')
+        // 2. New Subscriptions (from subscription_events where event_type = 'subscription' - using created_at)
         let newQuery = supabase
           .from('subscription_events')
           .select('amount', { count: 'exact' })
           .eq('event_type', 'subscription')
-          .gte('event_date', fromDate)
-          .lte('event_date', toDate);
+          .gte('created_at', fromDate + 'T00:00:00.000Z')
+          .lte('created_at', toDate + 'T23:59:59.999Z');
         
         newQuery = buildQuery(newQuery);
         const { data: newData, count: newCount, error: newError } = await newQuery;
         
         if (newError) throw newError;
 
-        // 3. Previous period new subscriptions for growth
+        // 3. Previous period new subscriptions for growth (using created_at)
         let prevNewQuery = supabase
           .from('subscription_events')
           .select('amount', { count: 'exact' })
           .eq('event_type', 'subscription')
-          .gte('event_date', prevFromFormatted)
-          .lte('event_date', prevToFormatted);
+          .gte('created_at', prevFromFormatted + 'T00:00:00.000Z')
+          .lte('created_at', prevToFormatted + 'T23:59:59.999Z');
         
         prevNewQuery = buildQuery(prevNewQuery);
         const { data: prevNewData, count: prevNewCount, error: prevNewError } = await prevNewQuery;
