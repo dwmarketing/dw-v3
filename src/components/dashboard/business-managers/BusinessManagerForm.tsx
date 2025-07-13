@@ -123,13 +123,51 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
         });
       }
 
-      // Note: Database table 'business_manager_accounts' does not exist yet
-      // Simulate save action
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (editingBM) {
+        // Modo de edição: atualizar registro existente
+        const { error } = await supabase
+          .from('business_manager_accounts')
+          .update({
+            bm_name: formattedBMName,
+            access_token: formData.access_token,
+            app_id: formData.app_id || null,
+            app_secret: formData.app_secret || null,
+            ad_account_name: validAccounts[0].ad_account_name,
+            ad_account_id: validAccounts[0].ad_account_id,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editingBM.id)
+          .eq('user_id', user.id);
+
+        if (error) {
+          throw error;
+        }
+      } else {
+        // Modo de criação: criar um registro para cada conta de anúncio
+        const recordsToInsert = validAccounts.map(account => ({
+          user_id: user.id,
+          bm_name: formattedBMName,
+          access_token: formData.access_token,
+          app_id: formData.app_id || null,
+          app_secret: formData.app_secret || null,
+          ad_account_name: account.ad_account_name,
+          ad_account_id: account.ad_account_id
+        }));
+
+        const { error } = await supabase
+          .from('business_manager_accounts')
+          .insert(recordsToInsert);
+
+        if (error) {
+          throw error;
+        }
+      }
 
       toast({
-        title: "Aviso",
-        description: "Dados salvos localmente. Tabela do banco de dados ainda não criada.",
+        title: "Sucesso",
+        description: editingBM 
+          ? "Business Manager atualizado com sucesso" 
+          : `Business Manager criado com ${validAccounts.length} conta(s) de anúncio`,
         variant: "default"
       });
 
