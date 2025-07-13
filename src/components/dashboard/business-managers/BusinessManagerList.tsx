@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,9 +35,9 @@ export const BusinessManagerList: React.FC<BusinessManagerListProps> = ({ refres
   const [showTokens, setShowTokens] = useState<{ [key: string]: boolean }>({});
   const [selectedBMs, setSelectedBMs] = useState<string[]>([]);
 
-  // Function to truncate text if it exceeds 10 characters
+  // Function to truncate text if it exceeds specified characters
   const truncateText = (text: string, maxLength: number = 10) => {
-    if (text.length <= maxLength) return text;
+    if (!text || text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
   };
 
