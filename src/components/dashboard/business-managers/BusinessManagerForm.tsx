@@ -40,22 +40,64 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
   ]);
 
   useEffect(() => {
-    if (editingBM) {
-      setFormData({
-        bm_name: editingBM.bm_name || '',
-        access_token: editingBM.access_token || '',
-        app_id: editingBM.app_id || '',
-        app_secret: editingBM.app_secret || ''
-      });
-      setAdAccounts([
-        {
-          id: '1',
-          ad_account_name: editingBM.ad_account_name || '',
-          ad_account_id: editingBM.ad_account_id || ''
+    const loadBusinessManagerData = async () => {
+      if (editingBM && user) {
+        setFormData({
+          bm_name: editingBM.bm_name || '',
+          access_token: editingBM.access_token || '',
+          app_id: editingBM.app_id || '',
+          app_secret: editingBM.app_secret || ''
+        });
+
+        // Fetch all ad accounts for this business manager
+        try {
+          const { data, error } = await supabase
+            .from('business_manager_accounts')
+            .select('ad_account_name, ad_account_id')
+            .eq('user_id', user.id)
+            .eq('bm_name', editingBM.bm_name);
+
+          if (error) {
+            throw error;
+          }
+
+          if (data && data.length > 0) {
+            const loadedAccounts = data.map((account, index) => ({
+              id: (index + 1).toString(),
+              ad_account_name: account.ad_account_name || '',
+              ad_account_id: account.ad_account_id || ''
+            }));
+            setAdAccounts(loadedAccounts);
+          } else {
+            // Fallback to single account from editingBM if no data found
+            setAdAccounts([
+              {
+                id: '1',
+                ad_account_name: editingBM.ad_account_name || '',
+                ad_account_id: editingBM.ad_account_id || ''
+              }
+            ]);
+          }
+        } catch (error: any) {
+          toast({
+            title: "Erro",
+            description: "Erro ao carregar contas de anúncio",
+            variant: "destructive"
+          });
+          // Fallback to single account from editingBM
+          setAdAccounts([
+            {
+              id: '1',
+              ad_account_name: editingBM.ad_account_name || '',
+              ad_account_id: editingBM.ad_account_id || ''
+            }
+          ]);
         }
-      ]);
-    }
-  }, [editingBM]);
+      }
+    };
+
+    loadBusinessManagerData();
+  }, [editingBM, user, toast]);
 
   // Função para formatar o nome da BM para ser compatível com automações
   const formatBMName = (name: string): string => {
@@ -124,23 +166,36 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
       }
 
       if (editingBM) {
-        // Modo de edição: atualizar registro existente
-        const { error } = await supabase
+        // Modo de edição: deletar registros existentes e criar novos em transação
+        
+        // Primeiro, deletar todos os registros existentes com o mesmo bm_name do usuário
+        const { error: deleteError } = await supabase
           .from('business_manager_accounts')
-          .update({
-            bm_name: formattedBMName,
-            access_token: formData.access_token,
-            app_id: formData.app_id || null,
-            app_secret: formData.app_secret || null,
-            ad_account_name: validAccounts[0].ad_account_name,
-            ad_account_id: validAccounts[0].ad_account_id,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', editingBM.id)
+          .delete()
+          .eq('bm_name', editingBM.bm_name)
           .eq('user_id', user.id);
 
-        if (error) {
-          throw error;
+        if (deleteError) {
+          throw new Error(`Erro ao deletar registros existentes: ${deleteError.message}`);
+        }
+
+        // Em seguida, criar novos registros para cada conta de anúncio
+        const recordsToInsert = validAccounts.map(account => ({
+          user_id: user.id,
+          bm_name: formattedBMName,
+          access_token: formData.access_token,
+          app_id: formData.app_id || null,
+          app_secret: formData.app_secret || null,
+          ad_account_name: account.ad_account_name,
+          ad_account_id: account.ad_account_id
+        }));
+
+        const { error: insertError } = await supabase
+          .from('business_manager_accounts')
+          .insert(recordsToInsert);
+
+        if (insertError) {
+          throw new Error(`Erro ao criar novos registros: ${insertError.message}`);
         }
       } else {
         // Modo de criação: criar um registro para cada conta de anúncio
@@ -166,7 +221,7 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
       toast({
         title: "Sucesso",
         description: editingBM 
-          ? "Business Manager atualizado com sucesso" 
+          ? `Business Manager atualizado com ${validAccounts.length} conta(s) de anúncio` 
           : `Business Manager criado com ${validAccounts.length} conta(s) de anúncio`,
         variant: "default"
       });
