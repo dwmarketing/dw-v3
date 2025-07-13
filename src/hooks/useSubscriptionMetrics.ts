@@ -65,9 +65,6 @@ export const useSubscriptionMetrics = (
           if (filters.plan && filters.plan !== 'all') {
             query = query.eq('plan', filters.plan);
           }
-          if (filters.paymentMethod && filters.paymentMethod !== 'all') {
-            query = query.eq('payment_method', filters.paymentMethod);
-          }
           return query;
         };
 
@@ -82,11 +79,10 @@ export const useSubscriptionMetrics = (
         
         if (activeError) throw activeError;
 
-        // 2. New Subscriptions (from subscription_events where event_type = 'subscription' - using created_at)
+        // 2. New Subscriptions (from subscription_status - using created_at)
         let newQuery = supabase
-          .from('subscription_events')
+          .from('subscription_status')
           .select('amount', { count: 'exact' })
-          .eq('event_type', 'subscription')
           .gte('created_at', fromDate + 'T00:00:00.000Z')
           .lte('created_at', toDate + 'T23:59:59.999Z');
         
@@ -97,9 +93,8 @@ export const useSubscriptionMetrics = (
 
         // 3. Previous period new subscriptions for growth (using created_at)
         let prevNewQuery = supabase
-          .from('subscription_events')
+          .from('subscription_status')
           .select('amount', { count: 'exact' })
-          .eq('event_type', 'subscription')
           .gte('created_at', prevFromFormatted + 'T00:00:00.000Z')
           .lte('created_at', prevToFormatted + 'T23:59:59.999Z');
         
