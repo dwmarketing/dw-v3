@@ -86,7 +86,10 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('🔍 [BM FORM] Submit iniciado, user:', user?.id);
+    
     if (!user) {
+      console.error('❌ [BM FORM] Usuário não autenticado');
       toast({
         title: "Erro",
         description: "Usuário não autenticado",
@@ -94,6 +97,8 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
       });
       return;
     }
+
+    console.log('✅ [BM FORM] Usuário autenticado:', user.id);
 
     // Validar se há pelo menos uma conta de anúncio preenchida
     const validAccounts = adAccounts.filter(account => 
@@ -115,6 +120,13 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
       // Formatar o nome da BM para ser compatível com automações
       const formattedBMName = formatBMName(formData.bm_name);
       
+      console.log('📝 [BM FORM] Dados a serem salvos:', {
+        formattedBMName,
+        validAccountsCount: validAccounts.length,
+        userId: user.id,
+        editMode: !!editingBM
+      });
+      
       // Mostrar um aviso se o nome foi alterado
       if (formattedBMName !== formData.bm_name) {
         toast({
@@ -125,25 +137,42 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
 
       if (editingBM) {
         // Modo de edição: atualizar registro existente
-        const { error } = await supabase
+        console.log('📝 [BM FORM] Atualizando registro existente:', editingBM.id);
+        
+        const updateData = {
+          bm_name: formattedBMName,
+          access_token: formData.access_token,
+          app_id: formData.app_id || null,
+          app_secret: formData.app_secret || null,
+          ad_account_name: validAccounts[0].ad_account_name,
+          ad_account_id: validAccounts[0].ad_account_id,
+          updated_at: new Date().toISOString()
+        };
+        
+        console.log('📝 [BM FORM] Dados para update:', updateData);
+        
+        const { data, error } = await supabase
           .from('business_manager_accounts')
-          .update({
-            bm_name: formattedBMName,
-            access_token: formData.access_token,
-            app_id: formData.app_id || null,
-            app_secret: formData.app_secret || null,
-            ad_account_name: validAccounts[0].ad_account_name,
-            ad_account_id: validAccounts[0].ad_account_id,
-            updated_at: new Date().toISOString()
-          })
+          .update(updateData)
           .eq('id', editingBM.id)
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .select();
 
+        console.log('📝 [BM FORM] Resultado do update:', { data, error });
+        
         if (error) {
+          console.error('❌ [BM FORM] Erro no update:', error);
           throw error;
+        }
+        
+        if (!data || data.length === 0) {
+          console.error('❌ [BM FORM] Nenhum registro foi atualizado - possível problema de permissão');
+          throw new Error('Nenhum registro foi atualizado. Verifique suas permissões.');
         }
       } else {
         // Modo de criação: criar um registro para cada conta de anúncio
+        console.log('📝 [BM FORM] Criando novos registros');
+        
         const recordsToInsert = validAccounts.map(account => ({
           user_id: user.id,
           bm_name: formattedBMName,
@@ -154,12 +183,23 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
           ad_account_id: account.ad_account_id
         }));
 
-        const { error } = await supabase
+        console.log('📝 [BM FORM] Registros para inserir:', recordsToInsert);
+
+        const { data, error } = await supabase
           .from('business_manager_accounts')
-          .insert(recordsToInsert);
+          .insert(recordsToInsert)
+          .select();
+
+        console.log('📝 [BM FORM] Resultado do insert:', { data, error });
 
         if (error) {
+          console.error('❌ [BM FORM] Erro no insert:', error);
           throw error;
+        }
+        
+        if (!data || data.length === 0) {
+          console.error('❌ [BM FORM] Nenhum registro foi inserido');
+          throw new Error('Nenhum registro foi inserido.');
         }
       }
 
