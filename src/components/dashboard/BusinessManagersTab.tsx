@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus } from 'lucide-react';
 import { BusinessManagerForm } from './business-managers/BusinessManagerForm';
@@ -9,51 +9,8 @@ export const BusinessManagersTab: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Enhanced check for persisted data with version compatibility
-  useEffect(() => {
-    const checkPersistedData = () => {
-      try {
-        const saved = localStorage.getItem('business-manager-form-data');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          const now = Date.now();
-          const EXPIRY_TIME = 24 * 60 * 60 * 1000; // 24 hours
-          const CURRENT_VERSION = 2;
-          
-          // Check version compatibility
-          if (parsed.version !== CURRENT_VERSION) {
-            console.log('🔄 Data version mismatch in tab check, ignoring');
-            return;
-          }
-          
-          if (now - parsed.timestamp < EXPIRY_TIME) {
-            // Enhanced data validation
-            const hasFormData = parsed.formData && Object.values(parsed.formData).some((value: any) => value?.trim() !== '');
-            const hasAdAccountData = parsed.adAccounts?.some((account: any) => 
-              account?.ad_account_name?.trim() !== '' || account?.ad_account_id?.trim() !== ''
-            );
-            
-            if (hasFormData || hasAdAccountData) {
-              console.log('✅ Found valid persisted data, showing form');
-              setShowCreateForm(true);
-            }
-          } else {
-            console.log('⏰ Persisted data expired in tab check');
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error checking persisted data:', error);
-        // Clear corrupted data
-        localStorage.removeItem('business-manager-form-data');
-      }
-    };
-
-    checkPersistedData();
-  }, []);
-
   const handleBusinessManagerCreated = () => {
     setRefreshTrigger(prev => prev + 1);
-    setShowCreateForm(false);
   };
 
   return (

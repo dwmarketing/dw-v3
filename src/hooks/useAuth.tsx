@@ -197,13 +197,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       }
       
-      // Show welcome message on successful login but don't auto-redirect
+      // Show welcome message only on successful login from auth page
       if (window.location.pathname === '/auth') {
         setTimeout(() => {
           toast({
             title: "Bem-vindo!",
             description: "Login realizado com sucesso.",
           });
+          
+          // Redirect to dashboard
+          window.location.href = '/dashboard';
         }, 500);
       }
       
