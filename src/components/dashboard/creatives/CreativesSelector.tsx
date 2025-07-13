@@ -129,29 +129,49 @@ export const CreativesSelector: React.FC<CreativesSelectorProps> = ({
           
           <ScrollArea className="h-64">
             <div className="p-3 space-y-2">
-              {filteredCreatives.map((creative, index) => (
-                <div key={creative.creative_name} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={creative.creative_name}
-                    checked={selectedCreatives.includes(creative.creative_name)}
-                    onCheckedChange={() => onCreativeToggle(creative.creative_name)}
-                    className="border-slate-500"
-                  />
-                  <label
-                    htmlFor={creative.creative_name}
-                    className="text-sm text-slate-300 cursor-pointer truncate flex-1"
-                    title={creative.creative_name}
-                  >
-                    {creative.creative_name.length > 35 
-                      ? creative.creative_name.substring(0, 35) + '...' 
-                      : creative.creative_name}
-                  </label>
-                  <div 
-                    className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: colors[index % colors.length] }}
-                  />
-                </div>
-              ))}
+              {filteredCreatives.map((creative, index) => {
+                const metricValue = (creative as any)[currentMetric.value] || 0;
+                const formatValue = (value: number) => {
+                  if (currentMetric.value === 'roi') return `${value.toFixed(1)}%`;
+                  if (currentMetric.value.includes('rate') || currentMetric.value === 'ctr') return `${value.toFixed(1)}%`;
+                  if (currentMetric.value.includes('spent') || currentMetric.value.includes('sales') || currentMetric.value === 'profit') {
+                    return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+                  }
+                  return value.toLocaleString('pt-BR');
+                };
+
+                return (
+                  <div key={creative.creative_name} className="flex items-center space-x-2 py-1">
+                    <Checkbox
+                      id={creative.creative_name}
+                      checked={selectedCreatives.includes(creative.creative_name)}
+                      onCheckedChange={() => onCreativeToggle(creative.creative_name)}
+                      className="border-slate-500"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <label
+                        htmlFor={creative.creative_name}
+                        className="text-sm text-slate-300 cursor-pointer block truncate"
+                        title={creative.creative_name}
+                      >
+                        {creative.creative_name.length > 30 
+                          ? creative.creative_name.substring(0, 30) + '...' 
+                          : creative.creative_name}
+                      </label>
+                      <div className="text-xs text-slate-500">
+                        {formatValue(metricValue)}
+                        {metricValue === 0 && currentMetric.value === 'gross_sales' && (
+                          <span className="ml-1 text-yellow-500">⚠️ Sem vendas</span>
+                        )}
+                      </div>
+                    </div>
+                    <div 
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: colors[index % colors.length] }}
+                    />
+                  </div>
+                );
+              })}
               {filteredCreatives.length === 0 && searchTerm && (
                 <div className="text-center text-slate-400 py-4">
                   Nenhum criativo encontrado para "{searchTerm}"

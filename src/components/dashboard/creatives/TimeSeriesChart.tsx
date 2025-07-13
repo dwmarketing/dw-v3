@@ -50,12 +50,20 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ creatives, dat
   
   // Filter and sort creatives based on selected metric
   const relevantCreatives = React.useMemo(() => {
-    let filtered = creatives;
+    // More permissive filtering - include creatives with any activity
+    let filtered = creatives.filter(creative => 
+      creative.amount_spent > 0 || 
+      creative.gross_sales > 0 || 
+      creative.views_3s > 0 ||
+      creative.sales_count > 0
+    );
 
     // For profit metric, include all creatives (even with negative profit)
-    // For other metrics, filter out zero values
-    if (selectedMetric !== 'profit') {
-      filtered = creatives.filter(creative => (creative as any)[selectedMetric] > 0);
+    // For revenue metrics, include creatives even with zero values for better comparison
+    if (selectedMetric === 'gross_sales' || selectedMetric === 'profit') {
+      filtered = creatives.filter(creative => 
+        creative.amount_spent > 0 || creative.gross_sales >= 0 || creative.views_3s > 0
+      );
     }
 
     // Sort by absolute value for profit to show highest impact creatives first
@@ -63,13 +71,20 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ creatives, dat
       return filtered.sort((a, b) => Math.abs(b.profit) - Math.abs(a.profit));
     }
 
-    return filtered.sort((a, b) => (b as any)[selectedMetric] - (a as any)[selectedMetric]);
+    // For other metrics, sort by value (allowing zeros to be shown)
+    return filtered.sort((a, b) => {
+      const valueA = (a as any)[selectedMetric] || 0;
+      const valueB = (b as any)[selectedMetric] || 0;
+      return valueB - valueA;
+    });
   }, [creatives, selectedMetric]);
 
-  // Initialize with ALL creatives when metric changes (instead of top 10)
+  // Initialize with top creatives when metric changes (limit for better visualization)
   React.useEffect(() => {
-    const allCreatives = relevantCreatives.map(c => c.creative_name);
-    setSelectedCreatives(allCreatives);
+    // For revenue metrics, show more creatives to highlight the issue and solution
+    const maxCreatives = selectedMetric === 'gross_sales' ? 10 : 8;
+    const topCreatives = relevantCreatives.slice(0, maxCreatives).map(c => c.creative_name);
+    setSelectedCreatives(topCreatives);
   }, [selectedMetric, relevantCreatives]);
 
   const currentMetric = metricOptions.find(m => m.value === selectedMetric) || metricOptions[0];
@@ -169,6 +184,14 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ creatives, dat
               <CardTitle className="text-slate-400 text-sm font-normal">
                 Acompanhe a evolução da métrica selecionada ao longo do período
               </CardTitle>
+              <div className="text-xs text-slate-500 mt-1">
+                {selectedMetric === 'gross_sales' && (
+                  <span>⚡ Incluindo criativos com receita zero para comparação completa</span>
+                )}
+                {relevantCreatives.length > 0 && (
+                  <span>📊 {relevantCreatives.length} criativos disponíveis</span>
+                )}
+              </div>
             </div>
             <Select value={selectedMetric} onValueChange={setSelectedMetric}>
               <SelectTrigger className="w-full lg:w-[200px] bg-slate-900/50 border-slate-600 text-white">
@@ -256,9 +279,27 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ creatives, dat
           
           {selectedCreatives.length === 0 && (
             <div className="flex items-center justify-center h-64">
-              <p className="text-slate-400 text-center">
-                Selecione pelo menos um criativo para visualizar o gráfico.
-              </p>
+              <div className="text-center">
+                <p className="text-slate-400">
+                  Selecione pelo menos um criativo para visualizar o gráfico.
+                </p>
+                <p className="text-xs text-slate-500 mt-2">
+                  Use os filtros acima para escolher os criativos que deseja comparar
+                </p>
+              </div>
+            </div>
+          )}
+          
+          {relevantCreatives.length === 0 && (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <p className="text-slate-400">
+                  Nenhum criativo com dados disponível para o período selecionado
+                </p>
+                <p className="text-xs text-slate-500 mt-2">
+                  Verifique se existem dados de insights ou vendas para os criativos no período
+                </p>
+              </div>
             </div>
           )}
         </CardContent>
