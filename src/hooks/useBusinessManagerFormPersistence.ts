@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface AdAccount {
   id: string;
@@ -17,11 +17,13 @@ interface PersistedFormState {
   formData: FormData;
   adAccounts: AdAccount[];
   timestamp: number;
+  version: number;
 }
 
 const STORAGE_KEY = 'business-manager-form-data';
-const AUTOSAVE_INTERVAL = 500; // Auto-save every 500ms for faster response
-const EXPIRY_TIME = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const AUTOSAVE_INTERVAL = 300; // Faster auto-save at 300ms
+const EXPIRY_TIME = 24 * 60 * 60 * 1000; // 24 hours
+const CURRENT_VERSION = 2; // Increment when data structure changes
 
 export const useBusinessManagerFormPersistence = (editingBM?: any) => {
   const [formData, setFormData] = useState<FormData>({
@@ -32,112 +34,137 @@ export const useBusinessManagerFormPersistence = (editingBM?: any) => {
   });
   
   const [adAccounts, setAdAccounts] = useState<AdAccount[]>([
-    { id: '1', ad_account_name: '', ad_account_id: '' }
+    { id: Date.now().toString(), ad_account_name: '', ad_account_id: '' }
   ]);
 
   const [hasPersistedData, setHasPersistedData] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const lastSavedRef = useRef<string>('');
+  const isEditingRef = useRef(!!editingBM);
 
-  // Immediate synchronous save function for critical actions
-  const saveImmediately = () => {
-    if (editingBM) return; // Don't persist when editing
+  // Update editing state when editingBM changes
+  useEffect(() => {
+    isEditingRef.current = !!editingBM;
+  }, [editingBM]);
+
+  // Enhanced immediate save with conflict detection
+  const saveImmediately = useCallback(() => {
+    if (isEditingRef.current) {
+      console.log('🚫 Skipping persistence - in edit mode');
+      return;
+    }
 
     try {
       const dataToSave: PersistedFormState = {
         formData,
         adAccounts,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        version: CURRENT_VERSION
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-      console.log('🔄 Form data saved immediately:', { 
-        formDataKeys: Object.keys(formData), 
-        adAccountsCount: adAccounts.length 
+      
+      const serialized = JSON.stringify(dataToSave);
+      
+      // Prevent unnecessary saves if data hasn't changed
+      if (serialized === lastSavedRef.current) {
+        console.log('🔄 Skipping save - no changes detected');
+        return;
+      }
+
+      localStorage.setItem(STORAGE_KEY, serialized);
+      lastSavedRef.current = serialized;
+      
+      console.log('💾 Form data saved immediately:', { 
+        formDataKeys: Object.keys(formData).filter(key => formData[key as keyof FormData]?.trim()), 
+        adAccountsCount: adAccounts.length,
+        timestamp: new Date().toLocaleTimeString()
       });
     } catch (error) {
       console.error('❌ Error saving form data immediately:', error);
     }
-  };
+  }, [formData, adAccounts]);
 
-  // Debug navigation events
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      console.log('🚨 Page unload detected - saving form data before navigation');
-      saveImmediately();
-    };
-
-    const handlePopState = () => {
-      console.log('🔄 Navigation detected (back/forward button)');
-      saveImmediately();
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('popstate', handlePopState);
-
-    // Listen for route changes if using react-router
-    const originalPushState = history.pushState;
-    const originalReplaceState = history.replaceState;
-
-    history.pushState = function(...args) {
-      console.log('🔄 History push state:', args[2]);
-      saveImmediately();
-      return originalPushState.apply(history, args);
-    };
-
-    history.replaceState = function(...args) {
-      console.log('🔄 History replace state:', args[2]);
-      saveImmediately();
-      return originalReplaceState.apply(history, args);
-    };
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('popstate', handlePopState);
-      history.pushState = originalPushState;
-      history.replaceState = originalReplaceState;
-    };
-  }, [formData, adAccounts, saveImmediately]);
-
-  // Load persisted data on mount
-  useEffect(() => {
-    if (editingBM) {
-      // If editing, don't load from localStorage
+  // Enhanced data loading with version migration
+  const loadPersistedData = useCallback(() => {
+    if (isEditingRef.current) {
+      console.log('🚫 Skipping load - in edit mode');
       return;
     }
 
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed: PersistedFormState = JSON.parse(saved);
-        const now = Date.now();
+      if (!saved) {
+        console.log('📭 No persisted data found');
+        setIsInitialized(true);
+        return;
+      }
+
+      const parsed: PersistedFormState = JSON.parse(saved);
+      const now = Date.now();
+      
+      // Check version compatibility
+      if (parsed.version !== CURRENT_VERSION) {
+        console.log('🔄 Data version mismatch, clearing old data');
+        localStorage.removeItem(STORAGE_KEY);
+        setIsInitialized(true);
+        return;
+      }
+      
+      // Check if data is still valid (not expired)
+      if (now - parsed.timestamp >= EXPIRY_TIME) {
+        console.log('⏰ Persisted data expired, removing');
+        localStorage.removeItem(STORAGE_KEY);
+        setIsInitialized(true);
+        return;
+      }
+
+      // Validate data quality
+      const hasFormData = Object.values(parsed.formData).some(value => value?.trim() !== '');
+      const hasValidAdAccounts = parsed.adAccounts?.some(account => 
+        account?.ad_account_name?.trim() !== '' || account?.ad_account_id?.trim() !== ''
+      );
+      
+      if (hasFormData || hasValidAdAccounts) {
+        console.log('✅ Loading persisted data:', {
+          formData: hasFormData,
+          adAccounts: hasValidAdAccounts,
+          accountCount: parsed.adAccounts?.length || 0
+        });
         
-        // Check if data is still valid (not expired)
-        if (now - parsed.timestamp < EXPIRY_TIME) {
-          // Check if there's meaningful data to restore
-          const hasFormData = Object.values(parsed.formData).some(value => value.trim() !== '');
-          const hasAdAccountData = parsed.adAccounts.some(account => 
-            account.ad_account_name.trim() !== '' || account.ad_account_id.trim() !== ''
-          );
-          
-          if (hasFormData || hasAdAccountData) {
-            setFormData(parsed.formData);
-            setAdAccounts(parsed.adAccounts);
-            setHasPersistedData(true);
-          }
-        } else {
-          // Data expired, remove from localStorage
-          localStorage.removeItem(STORAGE_KEY);
+        setFormData(parsed.formData);
+        
+        // Ensure ad accounts have valid IDs
+        const validatedAccounts = (parsed.adAccounts || []).map((account, index) => ({
+          ...account,
+          id: account.id || `${Date.now()}-${index}`
+        }));
+        
+        if (validatedAccounts.length === 0) {
+          validatedAccounts.push({ id: Date.now().toString(), ad_account_name: '', ad_account_id: '' });
         }
+        
+        setAdAccounts(validatedAccounts);
+        setHasPersistedData(true);
+        lastSavedRef.current = JSON.stringify(parsed);
+      } else {
+        console.log('📝 No meaningful data to restore');
       }
     } catch (error) {
-      console.error('Error loading persisted form data:', error);
+      console.error('❌ Error loading persisted form data:', error);
       localStorage.removeItem(STORAGE_KEY);
     }
-  }, [editingBM]);
+    
+    setIsInitialized(true);
+  }, []);
 
+  // Load persisted data on mount
+  useEffect(() => {
+    loadPersistedData();
+  }, [loadPersistedData]);
 
-  // Auto-save to localStorage with debouncing
-  const saveToLocalStorage = () => {
-    if (editingBM) return; // Don't persist when editing
+  // Enhanced auto-save with debouncing
+  const saveToLocalStorage = useCallback(() => {
+    if (!isInitialized || isEditingRef.current) return;
 
     // Clear existing timeout
     if (saveTimeoutRef.current) {
@@ -146,26 +173,13 @@ export const useBusinessManagerFormPersistence = (editingBM?: any) => {
 
     // Set new timeout for debounced saving
     saveTimeoutRef.current = setTimeout(() => {
-      try {
-        const dataToSave: PersistedFormState = {
-          formData,
-          adAccounts,
-          timestamp: Date.now()
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-        console.log('💾 Form data auto-saved:', { 
-          formDataKeys: Object.keys(formData), 
-          adAccountsCount: adAccounts.length 
-        });
-      } catch (error) {
-        console.error('❌ Error saving form data to localStorage:', error);
-      }
+      saveImmediately();
     }, AUTOSAVE_INTERVAL);
-  };
+  }, [isInitialized, saveImmediately]);
 
   // Auto-save when form data changes
   useEffect(() => {
-    if (!editingBM) {
+    if (isInitialized && !isEditingRef.current) {
       saveToLocalStorage();
     }
     
@@ -174,49 +188,89 @@ export const useBusinessManagerFormPersistence = (editingBM?: any) => {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [formData, adAccounts, editingBM]);
+  }, [formData, adAccounts, isInitialized, saveToLocalStorage]);
+
+  // Navigation event handling
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      console.log('🚨 Page unload detected - saving form data');
+      if (!isEditingRef.current && isInitialized) {
+        saveImmediately();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && !isEditingRef.current && isInitialized) {
+        console.log('👁️ Page hidden - saving form data');
+        saveImmediately();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [saveImmediately, isInitialized]);
 
   // Clear persisted data
-  const clearPersistedData = () => {
+  const clearPersistedData = useCallback(() => {
     try {
       localStorage.removeItem(STORAGE_KEY);
       setHasPersistedData(false);
+      lastSavedRef.current = '';
+      console.log('🗑️ Persisted data cleared');
     } catch (error) {
-      console.error('Error clearing persisted data:', error);
+      console.error('❌ Error clearing persisted data:', error);
     }
-  };
+  }, []);
 
-  // Update form data with persistence
-  const updateFormData = (newData: Partial<FormData>) => {
-    setFormData(prev => ({ ...prev, ...newData }));
-  };
+  // Update form data with optimistic updates
+  const updateFormData = useCallback((newData: Partial<FormData>) => {
+    setFormData(prev => {
+      const updated = { ...prev, ...newData };
+      console.log('📝 Form data updated:', Object.keys(newData));
+      return updated;
+    });
+  }, []);
 
-  // Update ad accounts with immediate persistence for critical actions
-  const updateAdAccounts = (newAccounts: AdAccount[]) => {
-    console.log('📝 Updating ad accounts:', { 
+  // Update ad accounts with immediate save for critical actions
+  const updateAdAccounts = useCallback((newAccounts: AdAccount[]) => {
+    console.log('📋 Updating ad accounts:', { 
       before: adAccounts.length, 
       after: newAccounts.length,
-      action: newAccounts.length > adAccounts.length ? 'ADD' : 'REMOVE'
+      action: newAccounts.length > adAccounts.length ? 'ADD' : 
+              newAccounts.length < adAccounts.length ? 'REMOVE' : 'UPDATE'
     });
     
     setAdAccounts(newAccounts);
     
-    // For critical actions (add/remove), save immediately
-    if (newAccounts.length !== adAccounts.length) {
-      // Use setTimeout to ensure state update completes first
+    // For critical actions (add/remove), save immediately after state update
+    if (newAccounts.length !== adAccounts.length && !isEditingRef.current) {
       setTimeout(() => {
+        console.log('🚀 Triggering immediate save after critical action');
         saveImmediately();
-      }, 0);
+      }, 50); // Small delay to ensure state update
     }
-  };
+  }, [adAccounts.length, saveImmediately]);
+
+  // Force refresh data (useful for debugging)
+  const refreshData = useCallback(() => {
+    console.log('🔄 Force refreshing persisted data');
+    loadPersistedData();
+  }, [loadPersistedData]);
 
   return {
     formData,
     adAccounts,
     hasPersistedData,
+    isInitialized,
     updateFormData,
     updateAdAccounts,
     clearPersistedData,
-    saveImmediately
+    saveImmediately,
+    refreshData
   };
 };
