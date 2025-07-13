@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { format, parseISO, eachDayOfInterval, eachMonthOfInterval, startOfMonth, endOfMonth, isSameDay, startOfYear, endOfYear, isSameHour, startOfDay, endOfDay } from 'date-fns';
+import { format, parseISO, eachDayOfInterval, eachMonthOfInterval, startOfMonth, endOfMonth, isSameDay, startOfYear, endOfYear, startOfDay, endOfDay, eachHourOfInterval, startOfHour } from 'date-fns';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
+import { supabase } from "@/integrations/supabase/client";
+
+const BRAZIL_TIMEZONE = 'America/Sao_Paulo';
 
 interface Sale {
   id: string;
@@ -14,14 +18,69 @@ interface Sale {
 }
 
 interface SalesChartProps {
-  sales: Sale[];
-  dateRange?: { from: Date; to: Date };
+  sales?: Sale[];
+  dateRange: { from: Date; to: Date };
 }
 
-export const SalesChart: React.FC<SalesChartProps> = ({ sales, dateRange }) => {
+export const SalesChart: React.FC<SalesChartProps> = ({ dateRange }) => {
+  const [salesData, setSalesData] = useState<Sale[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch sales data based on date range
+  useEffect(() => {
+    const fetchSalesData = async () => {
+      if (!dateRange?.from || !dateRange?.to) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        console.log('📊 [SALES CHART] Fetching sales data for range:', dateRange);
+
+        // Convert to Brazil timezone for accurate filtering
+        const startDate = toZonedTime(startOfDay(dateRange.from), BRAZIL_TIMEZONE);
+        const endDate = toZonedTime(endOfDay(dateRange.to), BRAZIL_TIMEZONE);
+        
+        // Convert back to UTC for database query
+        const startDateUTC = fromZonedTime(startDate, BRAZIL_TIMEZONE);
+        const endDateUTC = fromZonedTime(endDate, BRAZIL_TIMEZONE);
+        
+        const startDateStr = format(startDateUTC, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        const endDateStr = format(endDateUTC, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+
+        console.log('📊 [SALES CHART] Querying with dates:', { startDateStr, endDateStr });
+
+        const { data, error } = await supabase
+          .from('creative_sales')
+          .select('id, gross_value, net_value, status, payment_method, sale_date')
+          .gte('sale_date', startDateStr)
+          .lte('sale_date', endDateStr)
+          .order('sale_date', { ascending: true });
+
+        if (error) {
+          console.error('❌ [SALES CHART] Error fetching sales:', error);
+          setSalesData([]);
+          return;
+        }
+
+        console.log('📊 [SALES CHART] Fetched sales:', data?.length || 0, 'records');
+        setSalesData(data || []);
+
+      } catch (error) {
+        console.error('❌ [SALES CHART] Error in fetchSalesData:', error);
+        setSalesData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSalesData();
+  }, [dateRange?.from?.getTime(), dateRange?.to?.getTime()]);
+
   // Determine the chart period based on date range
   const getChartPeriod = () => {
-    if (!dateRange) return 'daily';
+    if (!dateRange?.from || !dateRange?.to) return 'daily';
     
     const daysDiff = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
     
@@ -44,10 +103,10 @@ export const SalesChart: React.FC<SalesChartProps> = ({ sales, dateRange }) => {
   };
 
   const chartPeriod = getChartPeriod();
+  const sales = salesData;
 
-  // Prepare revenue data based on the period
+  // Prepare revenue data based on the period with Brazil timezone
   const prepareRevenueData = () => {
-    // CHANGED: Use net_value instead of gross_value
     const validSales = sales.filter(sale => sale.status === 'completed' || sale.status === 'Unfulfilled');
     
     if (chartPeriod === 'single-day') {
@@ -66,12 +125,18 @@ export const SalesChart: React.FC<SalesChartProps> = ({ sales, dateRange }) => {
       const dayEnd = endOfDay(targetDate);
       
       validSales.forEach(sale => {
-        const saleDate = parseISO(sale.sale_date);
-        
-        // Only include sales from the specific selected day
-        if (saleDate >= dayStart && saleDate <= dayEnd) {
-          const hour = format(saleDate, 'HH:00');
-          hourlyRevenue[hour] = (hourlyRevenue[hour] || 0) + (sale.net_value || 0);
+        try {
+          // Parse UTC date and convert to Brazil timezone
+          const saleDateUTC = parseISO(sale.sale_date);
+          const saleDateBrazil = toZonedTime(saleDateUTC, BRAZIL_TIMEZONE);
+          
+          // Only include sales from the specific selected day in Brazil timezone
+          if (saleDateBrazil >= dayStart && saleDateBrazil <= dayEnd) {
+            const hour = format(saleDateBrazil, 'HH:00');
+            hourlyRevenue[hour] = (hourlyRevenue[hour] || 0) + (sale.net_value || 0);
+          }
+        } catch (error) {
+          console.warn('📊 Error parsing sale date:', sale.sale_date, error);
         }
       });
 
@@ -81,12 +146,20 @@ export const SalesChart: React.FC<SalesChartProps> = ({ sales, dateRange }) => {
     }
     
     else if (chartPeriod === 'weekly' && dateRange) {
-      // For weekly, show each day of the week
+      // For weekly, show each day of the week in Brazil timezone
       const days = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
       
       return days.map(day => {
         const dayRevenue = validSales
-          .filter(sale => isSameDay(parseISO(sale.sale_date), day))
+          .filter(sale => {
+            try {
+              const saleDateUTC = parseISO(sale.sale_date);
+              const saleDateBrazil = toZonedTime(saleDateUTC, BRAZIL_TIMEZONE);
+              return isSameDay(saleDateBrazil, day);
+            } catch {
+              return false;
+            }
+          })
           .reduce((sum, sale) => sum + (sale.net_value || 0), 0);
         
         return {
@@ -97,7 +170,7 @@ export const SalesChart: React.FC<SalesChartProps> = ({ sales, dateRange }) => {
     }
     
     else if (chartPeriod === 'yearly' && dateRange) {
-      // For yearly, show each month
+      // For yearly, show each month in Brazil timezone
       const yearStart = startOfYear(dateRange.from);
       const yearEnd = endOfYear(dateRange.to);
       const months = eachMonthOfInterval({ start: yearStart, end: yearEnd });
@@ -108,8 +181,13 @@ export const SalesChart: React.FC<SalesChartProps> = ({ sales, dateRange }) => {
         
         const monthRevenue = validSales
           .filter(sale => {
-            const saleDate = parseISO(sale.sale_date);
-            return saleDate >= monthStart && saleDate <= monthEnd;
+            try {
+              const saleDateUTC = parseISO(sale.sale_date);
+              const saleDateBrazil = toZonedTime(saleDateUTC, BRAZIL_TIMEZONE);
+              return saleDateBrazil >= monthStart && saleDateBrazil <= monthEnd;
+            } catch {
+              return false;
+            }
           })
           .reduce((sum, sale) => sum + (sale.net_value || 0), 0);
         
@@ -121,16 +199,29 @@ export const SalesChart: React.FC<SalesChartProps> = ({ sales, dateRange }) => {
     }
     
     else {
-      // Default daily view
-      const dailyRevenue = validSales.reduce((acc, sale) => {
-        const date = format(parseISO(sale.sale_date), 'dd/MM', { locale: ptBR });
-        acc[date] = (acc[date] || 0) + (sale.net_value || 0);
-        return acc;
-      }, {} as Record<string, number>);
-
-      return Object.entries(dailyRevenue)
-        .map(([date, revenue]) => ({ date, revenue }))
-        .sort((a, b) => a.date.localeCompare(b.date));
+      // Default daily view with Brazil timezone
+      if (!dateRange?.from || !dateRange?.to) return [];
+      
+      const days = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
+      
+      return days.map(day => {
+        const dayRevenue = validSales
+          .filter(sale => {
+            try {
+              const saleDateUTC = parseISO(sale.sale_date);
+              const saleDateBrazil = toZonedTime(saleDateUTC, BRAZIL_TIMEZONE);
+              return isSameDay(saleDateBrazil, day);
+            } catch {
+              return false;
+            }
+          })
+          .reduce((sum, sale) => sum + (sale.net_value || 0), 0);
+        
+        return {
+          date: format(day, 'dd/MM', { locale: ptBR }),
+          revenue: dayRevenue
+        };
+      });
     }
   };
 

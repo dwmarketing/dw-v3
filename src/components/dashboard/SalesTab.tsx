@@ -175,7 +175,7 @@ export const SalesTab: React.FC<SalesTabProps> = ({ dateRange }) => {
       {/* Charts Section */}
       <div className="space-y-6">
         {/* Revenue and Status Charts */}
-        <SalesChart sales={sales} dateRange={dateRange} />
+        <SalesChart dateRange={dateRange} />
         
         {/* Regional Analysis Charts */}
         <div className="grid grid-cols-1 xl:grid-cols-1 gap-6">
