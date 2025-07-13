@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface SubscriptionMetrics {
   activeSubscriptions: number;
@@ -23,6 +25,8 @@ interface DateRange {
   to: Date;
 }
 
+const TIMEZONE = 'America/Sao_Paulo';
+
 export const useSubscriptionMetrics = (
   dateRange: DateRange,
   filters: Filters
@@ -45,20 +49,128 @@ export const useSubscriptionMetrics = (
         setLoading(true);
         console.log('📊 [SUBSCRIPTION METRICS] Fetching metrics with filters:', filters);
 
-        // Placeholder implementation - replace with actual data sources
-        const mockMetrics: SubscriptionMetrics = {
-          activeSubscriptions: 1250,
-          newSubscriptions: 85,
-          mrr: 45000,
-          cancellations: 12,
-          activeSubscriptionsGrowth: 5.2,
-          newSubscriptionsGrowth: 12.8,
-          mrrGrowth: 8.5,
-          cancellationsGrowth: -3.2
+        const fromDate = formatInTimeZone(dateRange.from, TIMEZONE, 'yyyy-MM-dd');
+        const toDate = formatInTimeZone(dateRange.to, TIMEZONE, 'yyyy-MM-dd');
+        
+        // Calculate previous period for growth comparison
+        const periodDays = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
+        const prevFromDate = new Date(dateRange.from.getTime() - (periodDays * 24 * 60 * 60 * 1000));
+        const prevToDate = new Date(dateRange.to.getTime() - (periodDays * 24 * 60 * 60 * 1000));
+        const prevFromFormatted = formatInTimeZone(prevFromDate, TIMEZONE, 'yyyy-MM-dd');
+        const prevToFormatted = formatInTimeZone(prevToDate, TIMEZONE, 'yyyy-MM-dd');
+
+        // Build filters for queries
+        const buildQuery = (query: any) => {
+          if (filters.plan && filters.plan !== 'all') {
+            query = query.eq('plan', filters.plan);
+          }
+          if (filters.paymentMethod && filters.paymentMethod !== 'all') {
+            query = query.eq('payment_method', filters.paymentMethod);
+          }
+          return query;
         };
 
-        setMetrics(mockMetrics);
-        console.log('✅ [SUBSCRIPTION METRICS] Mock metrics loaded:', mockMetrics);
+        // 1. Active Subscriptions (from subscription_status)
+        let activeQuery = supabase
+          .from('subscription_status')
+          .select('amount', { count: 'exact' })
+          .eq('subscription_status', 'active');
+        
+        activeQuery = buildQuery(activeQuery);
+        const { data: activeData, count: activeCount, error: activeError } = await activeQuery;
+        
+        if (activeError) throw activeError;
+
+        // 2. New Subscriptions (from subscription_events where event_type = 'subscription')
+        let newQuery = supabase
+          .from('subscription_events')
+          .select('amount', { count: 'exact' })
+          .eq('event_type', 'subscription')
+          .gte('event_date', fromDate)
+          .lte('event_date', toDate);
+        
+        newQuery = buildQuery(newQuery);
+        const { data: newData, count: newCount, error: newError } = await newQuery;
+        
+        if (newError) throw newError;
+
+        // 3. Previous period new subscriptions for growth
+        let prevNewQuery = supabase
+          .from('subscription_events')
+          .select('amount', { count: 'exact' })
+          .eq('event_type', 'subscription')
+          .gte('event_date', prevFromFormatted)
+          .lte('event_date', prevToFormatted);
+        
+        prevNewQuery = buildQuery(prevNewQuery);
+        const { data: prevNewData, count: prevNewCount, error: prevNewError } = await prevNewQuery;
+        
+        if (prevNewError) throw prevNewError;
+
+        // 4. Cancellations (from subscription_events where event_type = 'cancellation')
+        let cancelQuery = supabase
+          .from('subscription_events')
+          .select('amount', { count: 'exact' })
+          .eq('event_type', 'cancellation')
+          .gte('event_date', fromDate)
+          .lte('event_date', toDate);
+        
+        cancelQuery = buildQuery(cancelQuery);
+        const { data: cancelData, count: cancelCount, error: cancelError } = await cancelQuery;
+        
+        if (cancelError) throw cancelError;
+
+        // 5. Previous period cancellations for growth
+        let prevCancelQuery = supabase
+          .from('subscription_events')
+          .select('amount', { count: 'exact' })
+          .eq('event_type', 'cancellation')
+          .gte('event_date', prevFromFormatted)
+          .lte('event_date', prevToFormatted);
+        
+        prevCancelQuery = buildQuery(prevCancelQuery);
+        const { data: prevCancelData, count: prevCancelCount, error: prevCancelError } = await prevCancelQuery;
+        
+        if (prevCancelError) throw prevCancelError;
+
+        // Calculate MRR from active subscriptions
+        const mrr = activeData?.reduce((sum, sub) => sum + (Number(sub.amount) || 0), 0) || 0;
+        
+        // Calculate growth percentages
+        const calculateGrowth = (current: number, previous: number) => {
+          if (previous === 0) return current > 0 ? 100 : 0;
+          return ((current - previous) / previous) * 100;
+        };
+
+        const activeSubscriptions = activeCount || 0;
+        const newSubscriptions = newCount || 0;
+        const cancellations = cancelCount || 0;
+        
+        const newSubscriptionsGrowth = calculateGrowth(newSubscriptions, prevNewCount || 0);
+        const cancellationsGrowth = calculateGrowth(cancellations, prevCancelCount || 0);
+
+        // For active subscriptions and MRR growth, we'd need historical data
+        // For now, we'll calculate based on the difference between new and cancelled
+        const netGrowth = newSubscriptions - cancellations;
+        const prevNetGrowth = (prevNewCount || 0) - (prevCancelCount || 0);
+        const activeSubscriptionsGrowth = calculateGrowth(netGrowth, prevNetGrowth);
+        
+        // MRR growth approximation based on net subscriber change
+        const mrrGrowth = activeSubscriptionsGrowth;
+
+        const calculatedMetrics: SubscriptionMetrics = {
+          activeSubscriptions,
+          newSubscriptions,
+          mrr,
+          cancellations,
+          activeSubscriptionsGrowth,
+          newSubscriptionsGrowth,
+          mrrGrowth,
+          cancellationsGrowth
+        };
+
+        setMetrics(calculatedMetrics);
+        console.log('✅ [SUBSCRIPTION METRICS] Real metrics loaded:', calculatedMetrics);
 
       } catch (error) {
         console.error('❌ [SUBSCRIPTION METRICS] Error fetching metrics:', error);

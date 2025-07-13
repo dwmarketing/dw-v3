@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { format, startOfDay, endOfDay } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface SubscriptionRenewal {
   id: string;
@@ -31,6 +31,8 @@ interface DateRange {
   from: Date;
   to: Date;
 }
+
+const TIMEZONE = 'America/Sao_Paulo';
 
 export const useSubscriptionRenewals = (
   dateRange: DateRange,
@@ -66,28 +68,78 @@ export const useSubscriptionRenewals = (
 
         setLoading(true);
         setError(null);
-        console.log('📊 Fetching subscription renewals...', { requestId });
+        console.log('📊 [SUBSCRIPTION RENEWALS] Fetching renewals...', { requestId, filters, searchTerm });
 
-        const startDate = startOfDay(dateRange.from);
-        const endDate = endOfDay(dateRange.to);
-        const startDateStr = format(startDate, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-        const endDateStr = format(endDate, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        const fromDate = formatInTimeZone(dateRange.from, TIMEZONE, 'yyyy-MM-dd');
+        const toDate = formatInTimeZone(dateRange.to, TIMEZONE, 'yyyy-MM-dd');
 
-        // Placeholder implementation - replace with actual data source
-        setRenewals([]);
-        setTotalCount(0);
-        return;
+        // Build the query
+        let query = supabase
+          .from('subscription_renewals')
+          .select('*', { count: 'exact' })
+          .gte('created_at', fromDate)
+          .lte('created_at', toDate)
+          .order('created_at', { ascending: false });
 
+        // Apply filters
+        if (filters.plan && filters.plan !== 'all') {
+          query = query.eq('plan', filters.plan);
+        }
 
+        if (filters.status && filters.status !== 'all') {
+          query = query.eq('subscription_status', filters.status);
+        }
+
+        // Apply search term
+        if (searchTerm) {
+          query = query.or(`customer_email.ilike.%${searchTerm}%,plan.ilike.%${searchTerm}%,subscription_id.ilike.%${searchTerm}%`);
+        }
+
+        // Apply pagination
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+        query = query.range(from, to);
+
+        const { data, count, error: queryError } = await query;
+
+        if (queryError) {
+          throw queryError;
+        }
+
+        // Check if request was aborted
+        if (abortController.signal.aborted || requestIdRef.current !== requestId) {
+          return;
+        }
+
+        const formattedRenewals: SubscriptionRenewal[] = (data || []).map(renewal => ({
+          id: renewal.id,
+          subscription_id: renewal.subscription_id,
+          customer_id: renewal.customer_id,
+          customer_email: renewal.customer_email,
+          customer_name: renewal.customer_name,
+          plan: renewal.plan,
+          amount: Number(renewal.amount),
+          currency: renewal.currency,
+          frequency: renewal.frequency,
+          subscription_status: renewal.subscription_status,
+          created_at: renewal.created_at,
+          updated_at: renewal.updated_at,
+          canceled_at: renewal.canceled_at,
+          subscription_number: renewal.subscription_number
+        }));
+
+        setRenewals(formattedRenewals);
+        setTotalCount(count || 0);
+        console.log('✅ [SUBSCRIPTION RENEWALS] Renewals loaded:', formattedRenewals.length, 'total:', count);
 
       } catch (error: any) {
         // Ignore aborted requests
         if (error.name === 'AbortError') {
-          console.log('📊 Request aborted', { requestId: requestIdRef.current });
+          console.log('📊 [SUBSCRIPTION RENEWALS] Request aborted', { requestId: requestIdRef.current });
           return;
         }
 
-        console.error('❌ Error fetching subscription renewals:', error);
+        console.error('❌ [SUBSCRIPTION RENEWALS] Error fetching renewals:', error);
         setError(error instanceof Error ? error.message : 'Erro desconhecido');
         setRenewals([]);
         setTotalCount(0);

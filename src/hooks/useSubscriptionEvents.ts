@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface SubscriptionEvent {
   id: string;
@@ -25,6 +26,8 @@ interface UseSubscriptionEventsParams {
   pageSize: number;
 }
 
+const TIMEZONE = 'America/Sao_Paulo';
+
 export const useSubscriptionEvents = (
   dateRange: UseSubscriptionEventsParams['dateRange'],
   filters: UseSubscriptionEventsParams['filters'],
@@ -39,33 +42,67 @@ export const useSubscriptionEvents = (
     const fetchEvents = async () => {
       try {
         setLoading(true);
+        console.log('📊 [SUBSCRIPTION EVENTS] Fetching events with filters:', filters, 'page:', page);
 
-        // Placeholder implementation - replace with actual data sources
-        const mockEvents: SubscriptionEvent[] = [
-          {
-            id: '1',
-            subscription_id: 'sub_1',
-            event_type: 'subscription',
-            amount: 99.90,
-            plan: 'Premium',
-            event_date: '2024-01-01',
-            customer_id: 'cust_1',
-            customer_email: 'test@example.com',
-            customer_name: 'Test User',
-            currency: 'BRL',
-            frequency: 'monthly',
-            payment_method: 'credit_card',
-            subscription_number: 1
-          }
-        ];
-        
-        setEvents(mockEvents);
-        setTotalCount(mockEvents.length);
-        setLoading(false);
-        return;
+        const fromDate = formatInTimeZone(dateRange.from, TIMEZONE, 'yyyy-MM-dd');
+        const toDate = formatInTimeZone(dateRange.to, TIMEZONE, 'yyyy-MM-dd');
+
+        // Build the query
+        let query = supabase
+          .from('subscription_events')
+          .select('*', { count: 'exact' })
+          .gte('event_date', fromDate)
+          .lte('event_date', toDate)
+          .order('event_date', { ascending: false });
+
+        // Apply filters
+        if (filters.plan && filters.plan !== 'all') {
+          query = query.eq('plan', filters.plan);
+        }
+
+        if (filters.eventType && filters.eventType !== 'all') {
+          query = query.eq('event_type', filters.eventType);
+        }
+
+        if (filters.paymentMethod && filters.paymentMethod !== 'all') {
+          query = query.eq('payment_method', filters.paymentMethod);
+        }
+
+        // Apply pagination
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+        query = query.range(from, to);
+
+        const { data, count, error } = await query;
+
+        if (error) {
+          throw error;
+        }
+
+        const formattedEvents: SubscriptionEvent[] = (data || []).map(event => ({
+          id: event.id,
+          subscription_id: event.subscription_id,
+          event_type: event.event_type,
+          amount: Number(event.amount),
+          plan: event.plan,
+          event_date: event.event_date,
+          customer_id: event.customer_id,
+          customer_email: event.customer_email,
+          customer_name: event.customer_name,
+          currency: event.currency,
+          frequency: event.frequency,
+          payment_method: event.payment_method,
+          subscription_number: event.subscription_number
+        }));
+
+        setEvents(formattedEvents);
+        setTotalCount(count || 0);
+        console.log('✅ [SUBSCRIPTION EVENTS] Events loaded:', formattedEvents.length, 'total:', count);
 
       } catch (error) {
-        console.error('Error fetching subscription events:', error);
+        console.error('❌ [SUBSCRIPTION EVENTS] Error fetching events:', error);
+        setEvents([]);
+        setTotalCount(0);
       } finally {
         setLoading(false);
       }
