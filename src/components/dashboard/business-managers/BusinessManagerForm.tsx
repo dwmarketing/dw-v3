@@ -37,7 +37,8 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
     hasPersistedData,
     updateFormData,
     updateAdAccounts,
-    clearPersistedData
+    clearPersistedData,
+    saveImmediately
   } = useBusinessManagerFormPersistence(editingBM);
 
   useEffect(() => {
@@ -110,13 +111,19 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
   };
 
   const addAdAccount = () => {
+    console.log('➕ Adding new ad account');
     const newId = Date.now().toString();
     updateAdAccounts([...adAccounts, { id: newId, ad_account_name: '', ad_account_id: '' }]);
+    // Additional immediate save to ensure persistence
+    setTimeout(() => saveImmediately?.(), 0);
   };
 
   const removeAdAccount = (id: string) => {
     if (adAccounts.length > 1) {
+      console.log('➖ Removing ad account:', id);
       updateAdAccounts(adAccounts.filter(account => account.id !== id));
+      // Additional immediate save to ensure persistence
+      setTimeout(() => saveImmediately?.(), 0);
     }
   };
 

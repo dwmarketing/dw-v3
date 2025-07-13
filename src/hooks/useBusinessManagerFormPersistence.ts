@@ -20,7 +20,7 @@ interface PersistedFormState {
 }
 
 const STORAGE_KEY = 'business-manager-form-data';
-const AUTOSAVE_INTERVAL = 2000; // Auto-save every 2 seconds
+const AUTOSAVE_INTERVAL = 500; // Auto-save every 500ms for faster response
 const EXPIRY_TIME = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 export const useBusinessManagerFormPersistence = (editingBM?: any) => {
@@ -37,6 +37,65 @@ export const useBusinessManagerFormPersistence = (editingBM?: any) => {
 
   const [hasPersistedData, setHasPersistedData] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Immediate synchronous save function for critical actions
+  const saveImmediately = () => {
+    if (editingBM) return; // Don't persist when editing
+
+    try {
+      const dataToSave: PersistedFormState = {
+        formData,
+        adAccounts,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+      console.log('🔄 Form data saved immediately:', { 
+        formDataKeys: Object.keys(formData), 
+        adAccountsCount: adAccounts.length 
+      });
+    } catch (error) {
+      console.error('❌ Error saving form data immediately:', error);
+    }
+  };
+
+  // Debug navigation events
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      console.log('🚨 Page unload detected - saving form data before navigation');
+      saveImmediately();
+    };
+
+    const handlePopState = () => {
+      console.log('🔄 Navigation detected (back/forward button)');
+      saveImmediately();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+
+    // Listen for route changes if using react-router
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    history.pushState = function(...args) {
+      console.log('🔄 History push state:', args[2]);
+      saveImmediately();
+      return originalPushState.apply(history, args);
+    };
+
+    history.replaceState = function(...args) {
+      console.log('🔄 History replace state:', args[2]);
+      saveImmediately();
+      return originalReplaceState.apply(history, args);
+    };
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+      history.pushState = originalPushState;
+      history.replaceState = originalReplaceState;
+    };
+  }, [formData, adAccounts, saveImmediately]);
 
   // Load persisted data on mount
   useEffect(() => {
@@ -75,6 +134,7 @@ export const useBusinessManagerFormPersistence = (editingBM?: any) => {
     }
   }, [editingBM]);
 
+
   // Auto-save to localStorage with debouncing
   const saveToLocalStorage = () => {
     if (editingBM) return; // Don't persist when editing
@@ -93,8 +153,12 @@ export const useBusinessManagerFormPersistence = (editingBM?: any) => {
           timestamp: Date.now()
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+        console.log('💾 Form data auto-saved:', { 
+          formDataKeys: Object.keys(formData), 
+          adAccountsCount: adAccounts.length 
+        });
       } catch (error) {
-        console.error('Error saving form data to localStorage:', error);
+        console.error('❌ Error saving form data to localStorage:', error);
       }
     }, AUTOSAVE_INTERVAL);
   };
@@ -127,9 +191,23 @@ export const useBusinessManagerFormPersistence = (editingBM?: any) => {
     setFormData(prev => ({ ...prev, ...newData }));
   };
 
-  // Update ad accounts with persistence
+  // Update ad accounts with immediate persistence for critical actions
   const updateAdAccounts = (newAccounts: AdAccount[]) => {
+    console.log('📝 Updating ad accounts:', { 
+      before: adAccounts.length, 
+      after: newAccounts.length,
+      action: newAccounts.length > adAccounts.length ? 'ADD' : 'REMOVE'
+    });
+    
     setAdAccounts(newAccounts);
+    
+    // For critical actions (add/remove), save immediately
+    if (newAccounts.length !== adAccounts.length) {
+      // Use setTimeout to ensure state update completes first
+      setTimeout(() => {
+        saveImmediately();
+      }, 0);
+    }
   };
 
   return {
@@ -138,6 +216,7 @@ export const useBusinessManagerFormPersistence = (editingBM?: any) => {
     hasPersistedData,
     updateFormData,
     updateAdAccounts,
-    clearPersistedData
+    clearPersistedData,
+    saveImmediately
   };
 };
