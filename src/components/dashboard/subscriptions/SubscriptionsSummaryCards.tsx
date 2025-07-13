@@ -3,6 +3,7 @@ import React from 'react';
 import { TrendingUp, Users, DollarSign, XCircle } from "lucide-react";
 import { useSubscriptionMetrics } from "@/hooks/useSubscriptionMetrics";
 import { MetricsCard } from "@/components/dashboard/MetricsCard";
+import { formatCurrency, formatNumber, formatGrowth } from "@/lib/formatters";
 
 interface SubscriptionsSummaryCardsProps {
   dateRange: {
@@ -32,29 +33,29 @@ export const SubscriptionsSummaryCards: React.FC<SubscriptionsSummaryCardsProps>
   const cards = [
     {
       title: "Assinaturas Ativas",
-      value: loading ? "..." : metrics.activeSubscriptions.toLocaleString(),
-      change: loading ? "..." : `+${metrics.activeSubscriptionsGrowth.toFixed(1)}%`,
+      value: loading ? "..." : formatNumber(metrics.activeSubscriptions),
+      change: loading ? "..." : formatGrowth(metrics.activeSubscriptionsGrowth),
       icon: Users,
       variant: 'purple' as const
     },
     {
       title: "Novas Assinaturas",
-      value: loading ? "..." : metrics.newSubscriptions.toLocaleString(),
-      change: loading ? "..." : `+${metrics.newSubscriptionsGrowth.toFixed(1)}%`,
+      value: loading ? "..." : formatNumber(metrics.newSubscriptions),
+      change: loading ? "..." : formatGrowth(metrics.newSubscriptionsGrowth),
       icon: TrendingUp,
       variant: 'success' as const
     },
     {
       title: "MRR",
-      value: loading ? "..." : `R$ ${metrics.mrr.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      change: loading ? "..." : `+${metrics.mrrGrowth.toFixed(1)}%`,
+      value: loading ? "..." : formatCurrency(metrics.mrr),
+      change: loading ? "..." : formatGrowth(metrics.mrrGrowth),
       icon: DollarSign,
       variant: 'black' as const
     },
     {
-      title: "Cancelamento",
-      value: loading ? "..." : metrics.cancellations.toLocaleString(),
-      change: loading ? "..." : `${metrics.cancellationsGrowth >= 0 ? '+' : ''}${metrics.cancellationsGrowth.toFixed(1)}%`,
+      title: "Cancelamentos",
+      value: loading ? "..." : formatNumber(metrics.cancellations),
+      change: loading ? "..." : formatGrowth(metrics.cancellationsGrowth),
       icon: XCircle,
       variant: 'warning' as const
     }

@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SubscriptionsTableFilters } from './SubscriptionsTableFilters';
 import { SubscriptionsPagination } from './SubscriptionsPagination';
 import { useSubscriptionsTableData } from '@/hooks/useSubscriptionsTableData';
+import { formatCurrency, formatDate, formatCustomerInfo, formatSubscriptionStatus, formatSubscriptionNumber } from "@/lib/formatters";
 
 interface SubscriptionsTableProps {
   dateRange: { from: Date; to: Date };
@@ -107,42 +108,44 @@ export const SubscriptionsTable: React.FC<SubscriptionsTableProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {subscriptions.map((subscription) => (
-                    <TableRow key={subscription.id} className="border-slate-700 hover:bg-slate-800/50">
-                      <TableCell>
-                        <div className="text-white">
-                          <div className="font-medium">
-                            {subscription.customer_name || 'N/A'}
+                  {subscriptions.map((subscription) => {
+                    const customer = formatCustomerInfo(subscription.customer_name, subscription.customer_email);
+                    const statusLabel = formatSubscriptionStatus(subscription.subscription_status);
+                    
+                    return (
+                      <TableRow key={subscription.id} className="border-slate-700 hover:bg-slate-800/50">
+                        <TableCell>
+                          <div className="text-white">
+                            <div className="font-medium">
+                              {customer.name}
+                            </div>
+                            <div className="text-sm text-slate-400">
+                              {customer.email}
+                            </div>
                           </div>
-                          <div className="text-sm text-slate-400">
-                            {subscription.customer_email}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-slate-300 border-slate-600">
-                          {subscription.plan}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-white font-medium">
-                        R$ {subscription.amount?.toLocaleString('pt-BR', { 
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2 
-                        })}
-                      </TableCell>
-                      <TableCell className="text-slate-300">
-                        {new Date(subscription.created_at).toLocaleDateString('pt-BR')}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusBadgeVariant(subscription.subscription_status)}>
-                          {getStatusLabel(subscription.subscription_status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-slate-300">
-                        #{subscription.subscription_number || 'N/A'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-slate-300 border-slate-600">
+                            {subscription.plan}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-white font-medium">
+                          {formatCurrency(subscription.amount)}
+                        </TableCell>
+                        <TableCell className="text-slate-300">
+                          {formatDate(subscription.created_at, 'dateTime')}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusBadgeVariant(subscription.subscription_status)}>
+                            {statusLabel}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-slate-300">
+                          {formatSubscriptionNumber(subscription.subscription_number)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

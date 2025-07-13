@@ -94,5 +94,19 @@ export const isSameDayBrazil = (date1: Date | string, date2: Date | string): boo
  * Currency formatting
  */
 export const formatCurrency = (value: number): string => {
-  return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
+/**
+ * Number formatting
+ */
+export const formatNumber = (value: number): string => {
+  return value.toLocaleString('pt-BR');
+};
+
+/**
+ * Percentage formatting
+ */
+export const formatPercentage = (value: number, decimals = 1): string => {
+  return `${value.toFixed(decimals)}%`;
 };

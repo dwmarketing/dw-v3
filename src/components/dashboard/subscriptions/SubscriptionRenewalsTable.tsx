@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSubscriptionRenewals } from "@/hooks/useSubscriptionRenewals";
+import { formatCurrency, formatDate, formatCustomerInfo, formatSubscriptionStatus, formatSubscriptionNumber } from "@/lib/formatters";
 
 interface SubscriptionRenewalsTableProps {
   dateRange: { from: Date; to: Date };
@@ -93,42 +94,44 @@ export const SubscriptionRenewalsTable: React.FC<SubscriptionRenewalsTableProps>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {renewals.map((renewal) => (
-                <TableRow key={renewal.id} className="border-slate-700 hover:bg-slate-800/50">
-                  <TableCell>
-                    <div className="text-white">
-                      <div className="font-medium">
-                        {renewal.customer_name || 'N/A'}
+              {renewals.map((renewal) => {
+                const customer = formatCustomerInfo(renewal.customer_name, renewal.customer_email);
+                const statusLabel = formatSubscriptionStatus(renewal.subscription_status);
+                
+                return (
+                  <TableRow key={renewal.id} className="border-slate-700 hover:bg-slate-800/50">
+                    <TableCell>
+                      <div className="text-white">
+                        <div className="font-medium">
+                          {customer.name}
+                        </div>
+                        <div className="text-sm text-slate-400">
+                          {customer.email}
+                        </div>
                       </div>
-                      <div className="text-sm text-slate-400">
-                        {renewal.customer_email}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-slate-300 border-slate-600">
-                      {renewal.plan}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-white font-medium">
-                    R$ {renewal.amount?.toLocaleString('pt-BR', { 
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2 
-                    })}
-                  </TableCell>
-                  <TableCell className="text-slate-300">
-                    {new Date(renewal.created_at).toLocaleDateString('pt-BR')}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusBadgeVariant(renewal.subscription_status)}>
-                      {getStatusLabel(renewal.subscription_status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-slate-300">
-                    #{renewal.subscription_number || 'N/A'}
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-slate-300 border-slate-600">
+                        {renewal.plan}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-white font-medium">
+                      {formatCurrency(renewal.amount)}
+                    </TableCell>
+                    <TableCell className="text-slate-300">
+                      {formatDate(renewal.created_at, 'dateTime')}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusBadgeVariant(renewal.subscription_status)}>
+                        {statusLabel}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-slate-300">
+                      {formatSubscriptionNumber(renewal.subscription_number)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}
