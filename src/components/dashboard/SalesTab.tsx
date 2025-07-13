@@ -7,6 +7,9 @@ import { SalesTable } from "./sales/SalesTable";
 import { SalesChart } from "./SalesChart";
 import { CountrySalesChart } from "./sales/CountrySalesChart";
 import { format, startOfDay, endOfDay } from "date-fns";
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+
+const BRAZIL_TIMEZONE = 'America/Sao_Paulo';
 
 interface Sale {
   id: string;
@@ -43,8 +46,10 @@ export const SalesTab: React.FC<SalesTabProps> = ({ dateRange }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchSales();
-  }, [dateRange]);
+    if (dateRange?.from && dateRange?.to) {
+      fetchSales();
+    }
+  }, [dateRange?.from?.getTime(), dateRange?.to?.getTime()]);
 
   // Resetar filtro de estado quando o país mudar
   useEffect(() => {
@@ -56,19 +61,66 @@ export const SalesTab: React.FC<SalesTabProps> = ({ dateRange }) => {
   const fetchSales = async () => {
     try {
       setLoading(true);
+      console.log('📊 [SALES TAB] Fetching sales data for range:', dateRange);
       
-      // Note: Database table 'creative_sales' does not exist yet
-      // Showing empty state for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Convert to Brazil timezone for accurate filtering
+      const startDate = toZonedTime(startOfDay(dateRange.from), BRAZIL_TIMEZONE);
+      const endDate = toZonedTime(endOfDay(dateRange.to), BRAZIL_TIMEZONE);
       
-      setSales([]);
+      // Convert back to UTC for database query
+      const startDateUTC = fromZonedTime(startDate, BRAZIL_TIMEZONE);
+      const endDateUTC = fromZonedTime(endDate, BRAZIL_TIMEZONE);
+      
+      const startDateStr = format(startDateUTC, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+      const endDateStr = format(endDateUTC, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+
+      console.log('📊 [SALES TAB] Querying with dates:', { startDateStr, endDateStr });
+
+      const { data, error } = await supabase
+        .from('creative_sales')
+        .select(`
+          id,
+          order_id,
+          creative_name,
+          status,
+          payment_method,
+          gross_value,
+          net_value,
+          customer_name,
+          customer_email,
+          affiliate_name,
+          is_affiliate,
+          affiliate_commission,
+          sale_date,
+          country,
+          state
+        `)
+        .gte('sale_date', startDateStr)
+        .lte('sale_date', endDateStr)
+        .order('sale_date', { ascending: false });
+
+      if (error) {
+        console.error('❌ [SALES TAB] Error fetching sales:', error);
+        toast({
+          title: "Erro",
+          description: "Erro ao carregar dados de vendas.",
+          variant: "destructive",
+        });
+        setSales([]);
+        return;
+      }
+
+      console.log('📊 [SALES TAB] Fetched sales:', data?.length || 0, 'records');
+      setSales(data || []);
+      
     } catch (error) {
-      console.error('Error fetching sales:', error);
+      console.error('❌ [SALES TAB] Error in fetchSales:', error);
       toast({
-        title: "Info",
-        description: "Tabela de vendas ainda não criada. Dados não disponíveis.",
-        variant: "default",
+        title: "Erro",
+        description: "Erro inesperado ao carregar vendas.",
+        variant: "destructive",
       });
+      setSales([]);
     } finally {
       setLoading(false);
     }
@@ -137,9 +189,19 @@ export const SalesTab: React.FC<SalesTabProps> = ({ dateRange }) => {
     const getPaymentMethodLabel = (method: string) => {
       switch (method) {
         case 'pix': return 'PIX';
-        case 'cartao_credito': return 'Cartão de Crédito';
+        case 'credit_card': return 'Cartão de Crédito';
         case 'boleto': return 'Boleto';
         default: return method;
+      }
+    };
+
+    const formatDateForCSV = (dateStr: string) => {
+      if (!dateStr) return '-';
+      try {
+        const date = new Date(dateStr);
+        return format(date, 'dd/MM/yyyy HH:mm');
+      } catch {
+        return '-';
       }
     };
 
@@ -147,9 +209,9 @@ export const SalesTab: React.FC<SalesTabProps> = ({ dateRange }) => {
       headers.join(','),
       ...displayedSales.map(sale => [
         `"${sale.order_id}"`,
-        sale.sale_date ? format(new Date(sale.sale_date), 'dd/MM/yyyy HH:mm') : '-',
-        `"${sale.customer_name}"`,
-        `"${sale.creative_name}"`,
+        formatDateForCSV(sale.sale_date),
+        `"${sale.customer_name || ''}"`,
+        `"${sale.creative_name || ''}"`,
         getStatusLabel(sale.status),
         getPaymentMethodLabel(sale.payment_method),
         (sale.net_value || 0).toFixed(2),
@@ -163,7 +225,7 @@ export const SalesTab: React.FC<SalesTabProps> = ({ dateRange }) => {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', 'vendas_regionais.csv');
+    link.setAttribute('download', `vendas_${format(dateRange.from, 'yyyy-MM-dd')}_${format(dateRange.to, 'yyyy-MM-dd')}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
