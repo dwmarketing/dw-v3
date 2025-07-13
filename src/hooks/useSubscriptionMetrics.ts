@@ -72,44 +72,46 @@ export const useSubscriptionMetrics = (
         let activeQuery = supabase
           .from('subscription_status')
           .select('amount', { count: 'exact' })
-          .eq('subscription_status', 'active');
+          .in('subscription_status', ['active', 'ativo', 'Active', 'Ativo']);
         
         activeQuery = buildQuery(activeQuery);
         const { data: activeData, count: activeCount, error: activeError } = await activeQuery;
         
         if (activeError) throw activeError;
 
-        // 2. New Subscriptions (from subscription_status - using created_at)
+        // 2. New Subscriptions (from subscription_status - created in period with active status)
         let newQuery = supabase
           .from('subscription_status')
           .select('amount', { count: 'exact' })
           .gte('created_at', fromDate + 'T00:00:00.000Z')
-          .lte('created_at', toDate + 'T23:59:59.999Z');
+          .lte('created_at', toDate + 'T23:59:59.999Z')
+          .in('subscription_status', ['active', 'ativo', 'Active', 'Ativo']);
         
         newQuery = buildQuery(newQuery);
         const { data: newData, count: newCount, error: newError } = await newQuery;
         
         if (newError) throw newError;
 
-        // 3. Previous period new subscriptions for growth (using created_at)
+        // 3. Previous period new subscriptions for growth (with active status)
         let prevNewQuery = supabase
           .from('subscription_status')
           .select('amount', { count: 'exact' })
           .gte('created_at', prevFromFormatted + 'T00:00:00.000Z')
-          .lte('created_at', prevToFormatted + 'T23:59:59.999Z');
+          .lte('created_at', prevToFormatted + 'T23:59:59.999Z')
+          .in('subscription_status', ['active', 'ativo', 'Active', 'Ativo']);
         
         prevNewQuery = buildQuery(prevNewQuery);
         const { data: prevNewData, count: prevNewCount, error: prevNewError } = await prevNewQuery;
         
         if (prevNewError) throw prevNewError;
 
-        // 4. Cancellations (from subscription_events where event_type = 'cancellation')
+        // 4. Cancellations (from subscription_status where status is canceled and canceled_at is in period)
         let cancelQuery = supabase
-          .from('subscription_events')
+          .from('subscription_status')
           .select('amount', { count: 'exact' })
-          .eq('event_type', 'cancellation')
-          .gte('event_date', fromDate)
-          .lte('event_date', toDate);
+          .in('subscription_status', ['canceled', 'cancelado', 'cancelled', 'Canceled', 'Cancelled', 'Cancelado'])
+          .gte('canceled_at', fromDate + 'T00:00:00.000Z')
+          .lte('canceled_at', toDate + 'T23:59:59.999Z');
         
         cancelQuery = buildQuery(cancelQuery);
         const { data: cancelData, count: cancelCount, error: cancelError } = await cancelQuery;
@@ -118,11 +120,11 @@ export const useSubscriptionMetrics = (
 
         // 5. Previous period cancellations for growth
         let prevCancelQuery = supabase
-          .from('subscription_events')
+          .from('subscription_status')
           .select('amount', { count: 'exact' })
-          .eq('event_type', 'cancellation')
-          .gte('event_date', prevFromFormatted)
-          .lte('event_date', prevToFormatted);
+          .in('subscription_status', ['canceled', 'cancelado', 'cancelled', 'Canceled', 'Cancelled', 'Cancelado'])
+          .gte('canceled_at', prevFromFormatted + 'T00:00:00.000Z')
+          .lte('canceled_at', prevToFormatted + 'T23:59:59.999Z');
         
         prevCancelQuery = buildQuery(prevCancelQuery);
         const { data: prevCancelData, count: prevCancelCount, error: prevCancelError } = await prevCancelQuery;
@@ -166,7 +168,13 @@ export const useSubscriptionMetrics = (
         };
 
         setMetrics(calculatedMetrics);
-        console.log('✅ [SUBSCRIPTION METRICS] Real metrics loaded:', calculatedMetrics);
+        console.log('✅ [SUBSCRIPTION METRICS] Metrics loaded:', {
+          activeSubscriptions,
+          newSubscriptions,
+          cancellations,
+          newSubscriptionsGrowth,
+          cancellationsGrowth
+        });
 
       } catch (error) {
         console.error('❌ [SUBSCRIPTION METRICS] Error fetching metrics:', error);
