@@ -24,9 +24,10 @@ interface BusinessManager {
 
 interface BusinessManagerListProps {
   refreshTrigger: number;
+  onBusinessManagerUpdated?: () => void;
 }
 
-export const BusinessManagerList: React.FC<BusinessManagerListProps> = ({ refreshTrigger }) => {
+export const BusinessManagerList: React.FC<BusinessManagerListProps> = ({ refreshTrigger, onBusinessManagerUpdated }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [businessManagers, setBusinessManagers] = useState<BusinessManager[]>([]);
@@ -69,6 +70,7 @@ export const BusinessManagerList: React.FC<BusinessManagerListProps> = ({ refres
   };
 
   useEffect(() => {
+    console.log('🔄 [BM LIST] useEffect disparado, refreshTrigger:', refreshTrigger);
     fetchBusinessManagers();
   }, [user, refreshTrigger]);
 
@@ -136,7 +138,11 @@ export const BusinessManagerList: React.FC<BusinessManagerListProps> = ({ refres
         <BusinessManagerForm
           editingBM={editingBM}
           onClose={() => setEditingBM(null)}
-          onBusinessManagerCreated={fetchBusinessManagers}
+          onBusinessManagerCreated={() => {
+            console.log('🔄 [BM LIST] Chamando callbacks após edição');
+            fetchBusinessManagers();
+            onBusinessManagerUpdated?.();
+          }}
         />
       )}
 

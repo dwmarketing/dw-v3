@@ -203,6 +203,8 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
         }
       }
 
+      console.log('✅ [BM FORM] Operação concluída com sucesso');
+
       toast({
         title: "Sucesso",
         description: editingBM 
@@ -211,7 +213,10 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
         variant: "default"
       });
 
+      console.log('📞 [BM FORM] Chamando onBusinessManagerCreated');
       onBusinessManagerCreated();
+      
+      console.log('🚪 [BM FORM] Fechando formulário');
       onClose();
     } catch (error: any) {
       toast({

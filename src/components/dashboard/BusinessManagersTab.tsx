@@ -10,6 +10,7 @@ export const BusinessManagersTab: React.FC = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleBusinessManagerCreated = () => {
+    console.log('🔄 [BM TAB] Atualizando refreshTrigger de', refreshTrigger, 'para', refreshTrigger + 1);
     setRefreshTrigger(prev => prev + 1);
   };
 
@@ -39,7 +40,10 @@ export const BusinessManagersTab: React.FC = () => {
       )}
 
       {/* Business Managers List */}
-      <BusinessManagerList refreshTrigger={refreshTrigger} />
+      <BusinessManagerList 
+        refreshTrigger={refreshTrigger} 
+        onBusinessManagerUpdated={handleBusinessManagerCreated}
+      />
     </div>
   );
 };
