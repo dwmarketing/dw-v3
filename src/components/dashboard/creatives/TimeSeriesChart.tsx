@@ -47,6 +47,7 @@ const COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#06b6d4'
 export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ creatives, dateRange }) => {
   const [selectedMetric, setSelectedMetric] = React.useState('amount_spent');
   const [selectedCreatives, setSelectedCreatives] = React.useState<string[]>([]);
+  const [showEstimatedData, setShowEstimatedData] = React.useState(false);
   
   // Filter and sort creatives based on selected metric
   const relevantCreatives = React.useMemo(() => {
@@ -66,15 +67,15 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ creatives, dat
     return filtered.sort((a, b) => (b as any)[selectedMetric] - (a as any)[selectedMetric]);
   }, [creatives, selectedMetric]);
 
-  // Initialize with ALL creatives when metric changes (instead of top 10)
+  // Initialize with top 5 creatives when metric changes
   React.useEffect(() => {
-    const allCreatives = relevantCreatives.map(c => c.creative_name);
-    setSelectedCreatives(allCreatives);
+    const topCreatives = relevantCreatives.slice(0, 5).map(c => c.creative_name);
+    setSelectedCreatives(topCreatives);
   }, [selectedMetric, relevantCreatives]);
 
   const currentMetric = metricOptions.find(m => m.value === selectedMetric) || metricOptions[0];
 
-  // Generate time series data
+  // Generate time series data with real data when available
   const generateTimeSeriesData = () => {
     const startDate = new Date(dateRange.from);
     const endDate = new Date(dateRange.to);
@@ -88,6 +89,8 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ creatives, dat
       selectedCreatives.includes(creative.creative_name)
     );
 
+    // For now, we'll show estimated daily distribution
+    // In the future, this can be replaced with actual daily data
     const timeSeriesData = dateArray.map(date => {
       const dateStr = date.toLocaleDateString('pt-BR');
       const dataPoint: any = { date: dateStr, fullDate: date.toISOString().split('T')[0] };
@@ -99,7 +102,7 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ creatives, dat
         
         // Distribute value over period with improved algorithm
         const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        const dailyValue = (creative as any)[selectedMetric] / totalDays;
+        let dailyValue = (creative as any)[selectedMetric] / totalDays;
         
         // Add realistic variation that maintains the total value
         const dayOfPeriod = Math.ceil((date.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -107,7 +110,12 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ creatives, dat
         const randomFactor = 0.7 + (Math.random() * 0.6); // Random variation
         const combinedFactor = (cyclicalFactor + randomFactor) / 2;
         
-        dataPoint[creativeName] = dailyValue * combinedFactor;
+        // Apply variation only if showing estimated data
+        if (showEstimatedData) {
+          dailyValue = dailyValue * combinedFactor;
+        }
+        
+        dataPoint[creativeName] = dailyValue;
       });
       
       return dataPoint;
@@ -167,8 +175,14 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ creatives, dat
             <div>
               <CardTitle className="text-white text-xl">Evolução Temporal - Criativos</CardTitle>
               <CardTitle className="text-slate-400 text-sm font-normal">
-                Acompanhe a evolução da métrica selecionada ao longo do período
+                Distribuição estimada das métricas ao longo do período (dados totais divididos por dias)
               </CardTitle>
+              <div className="mt-2 p-2 bg-amber-900/20 border border-amber-800/30 rounded-md">
+                <p className="text-amber-400 text-xs">
+                  ⚠️ Os dados mostrados são uma estimativa da distribuição temporal dos totais no período. 
+                  Para dados diários reais, seria necessário reestruturar o banco de dados.
+                </p>
+              </div>
             </div>
             <Select value={selectedMetric} onValueChange={setSelectedMetric}>
               <SelectTrigger className="w-full lg:w-[200px] bg-slate-900/50 border-slate-600 text-white">
@@ -227,7 +241,7 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ creatives, dat
                     formatTooltipValue(value),
                     name
                   ]}
-                  labelFormatter={(label) => `Data: ${label}`}
+                  labelFormatter={(label) => `${label} (estimativa diária)`}
                 />
                 <Legend 
                   wrapperStyle={{ color: '#9ca3af' }}
