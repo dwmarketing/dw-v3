@@ -53,6 +53,8 @@ export const useSubscriptionMetrics = (
         const fromDate = formatInTimeZone(dateRange.from, TIMEZONE, 'yyyy-MM-dd');
         const toDate = formatInTimeZone(dateRange.to, TIMEZONE, 'yyyy-MM-dd');
         
+        console.log('📊 [SUBSCRIPTION METRICS] Date range:', { fromDate, toDate });
+        
         // Calculate previous period for growth comparison
         const periodDays = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
         const prevFromDate = new Date(dateRange.from.getTime() - (periodDays * 24 * 60 * 60 * 1000));
@@ -67,6 +69,34 @@ export const useSubscriptionMetrics = (
           }
           return query;
         };
+
+        // DEBUG: Vamos primeiro verificar todos os status únicos na tabela
+        const { data: allStatuses } = await supabase
+          .from('subscription_status')
+          .select('subscription_status')
+          .not('subscription_status', 'is', null);
+        
+        const uniqueStatuses = [...new Set(allStatuses?.map(item => item.subscription_status) || [])];
+        console.log('📊 [DEBUG] Todos os status únicos encontrados:', uniqueStatuses);
+
+        // DEBUG: Verificar registros cancelados sem filtro de data
+        const { data: allCanceled, count: allCanceledCount } = await supabase
+          .from('subscription_status')
+          .select('*', { count: 'exact' })
+          .in('subscription_status', ['canceled', 'cancelado', 'cancelled', 'Canceled', 'Cancelled', 'Cancelado']);
+        
+        console.log('📊 [DEBUG] Total de registros cancelados (sem filtro de data):', allCanceledCount);
+        console.log('📊 [DEBUG] Primeiros 5 registros cancelados:', allCanceled?.slice(0, 5));
+
+        // DEBUG: Verificar registros cancelados com canceled_at não nulo
+        const { data: canceledWithDate, count: canceledWithDateCount } = await supabase
+          .from('subscription_status')
+          .select('*', { count: 'exact' })
+          .in('subscription_status', ['canceled', 'cancelado', 'cancelled', 'Canceled', 'Cancelled', 'Cancelado'])
+          .not('canceled_at', 'is', null);
+        
+        console.log('📊 [DEBUG] Registros cancelados com canceled_at não nulo:', canceledWithDateCount);
+        console.log('📊 [DEBUG] Primeiros 5 com canceled_at:', canceledWithDate?.slice(0, 5));
 
         // 1. Active Subscriptions (from subscription_status)
         let activeQuery = supabase
@@ -106,15 +136,23 @@ export const useSubscriptionMetrics = (
         if (prevNewError) throw prevNewError;
 
         // 4. Cancellations (from subscription_status where status is canceled and canceled_at is in period)
+        console.log('📊 [DEBUG] Buscando cancelamentos entre:', fromDate + 'T00:00:00.000Z', 'e', toDate + 'T23:59:59.999Z');
+        
         let cancelQuery = supabase
           .from('subscription_status')
-          .select('amount', { count: 'exact' })
+          .select('*', { count: 'exact' })
           .in('subscription_status', ['canceled', 'cancelado', 'cancelled', 'Canceled', 'Cancelled', 'Cancelado'])
           .gte('canceled_at', fromDate + 'T00:00:00.000Z')
           .lte('canceled_at', toDate + 'T23:59:59.999Z');
         
         cancelQuery = buildQuery(cancelQuery);
         const { data: cancelData, count: cancelCount, error: cancelError } = await cancelQuery;
+        
+        console.log('📊 [DEBUG] Resultado da query de cancelamentos:', {
+          count: cancelCount,
+          data: cancelData,
+          error: cancelError
+        });
         
         if (cancelError) throw cancelError;
 
