@@ -45,6 +45,8 @@ export const BusinessManagerList: React.FC<BusinessManagerListProps> = ({ refres
   const fetchBusinessManagers = async () => {
     if (!user) return;
 
+    console.log('🔍 [BM LIST] Iniciando fetch dos Business Managers para user:', user.id);
+
     try {
       const { data, error } = await supabase
         .from('business_manager_accounts')
@@ -52,12 +54,20 @@ export const BusinessManagerList: React.FC<BusinessManagerListProps> = ({ refres
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
+      console.log('📊 [BM LIST] Resultado da consulta:', { data, error });
+
       if (error) {
+        console.error('❌ [BM LIST] Erro na consulta:', error);
         throw error;
       }
 
+      console.log('✅ [BM LIST] Dados recebidos:', data?.length, 'registros');
+      console.log('📋 [BM LIST] Dados detalhados:', data);
+      
       setBusinessManagers(data || []);
+      console.log('💾 [BM LIST] Estado atualizado com', (data || []).length, 'registros');
     } catch (error: any) {
+      console.error('❌ [BM LIST] Erro geral:', error);
       toast({
         title: "Erro",
         description: error.message || "Erro ao carregar Business Managers",
