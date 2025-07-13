@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, Save, Plus, Trash2 } from 'lucide-react';
+import { X, Save, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
@@ -29,6 +29,8 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showAccessToken, setShowAccessToken] = useState(false);
+  const [showAppSecret, setShowAppSecret] = useState(false);
   const [formData, setFormData] = useState({
     bm_name: '',
     access_token: '',
@@ -268,15 +270,26 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
               
               <div className="space-y-2">
                 <Label htmlFor="access_token" className="text-white">Token de Acesso</Label>
-                <Input
-                  id="access_token"
-                  type="password"
-                  value={formData.access_token}
-                  onChange={(e) => setFormData({ ...formData, access_token: e.target.value })}
-                  placeholder="Insira o token de acesso"
-                  className="bg-slate-800 border-slate-700 text-white"
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="access_token"
+                    type={showAccessToken ? "text" : "password"}
+                    value={formData.access_token}
+                    onChange={(e) => setFormData({ ...formData, access_token: e.target.value })}
+                    placeholder="Insira o token de acesso"
+                    className="bg-slate-800 border-slate-700 text-white pr-10"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAccessToken(!showAccessToken)}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white h-6 w-6 p-0"
+                  >
+                    {showAccessToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -293,14 +306,25 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
 
               <div className="space-y-2">
                 <Label htmlFor="app_secret" className="text-white">Chave Secreta</Label>
-                <Input
-                  id="app_secret"
-                  type="password"
-                  value={formData.app_secret}
-                  onChange={(e) => setFormData({ ...formData, app_secret: e.target.value })}
-                  placeholder="Insira a chave secreta"
-                  className="bg-slate-800 border-slate-700 text-white"
-                />
+                <div className="relative">
+                  <Input
+                    id="app_secret"
+                    type={showAppSecret ? "text" : "password"}
+                    value={formData.app_secret}
+                    onChange={(e) => setFormData({ ...formData, app_secret: e.target.value })}
+                    placeholder="Insira a chave secreta"
+                    className="bg-slate-800 border-slate-700 text-white pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAppSecret(!showAppSecret)}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white h-6 w-6 p-0"
+                  >
+                    {showAppSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

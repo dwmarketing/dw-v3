@@ -34,10 +34,6 @@ export const BusinessManagerList: React.FC<BusinessManagerListProps> = ({ refres
   const [loading, setLoading] = useState(true);
   const [editingBM, setEditingBM] = useState<BusinessManager | null>(null);
   const [showTokens, setShowTokens] = useState<{ [key: string]: boolean }>({});
-  const [showBMNames, setShowBMNames] = useState<{ [key: string]: boolean }>({});
-  const [showAccountIds, setShowAccountIds] = useState<{ [key: string]: boolean }>({});
-  const [showAppIds, setShowAppIds] = useState<{ [key: string]: boolean }>({});
-  const [showAppSecrets, setShowAppSecrets] = useState<{ [key: string]: boolean }>({});
   const [selectedBMs, setSelectedBMs] = useState<string[]>([]);
 
   // Function to truncate text if it exceeds 10 characters
@@ -124,66 +120,14 @@ export const BusinessManagerList: React.FC<BusinessManagerListProps> = ({ refres
     }
   };
 
-  // Toggle visibility functions
   const toggleTokenVisibility = (id: string) => {
     setShowTokens(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const toggleBMNameVisibility = (id: string) => {
-    setShowBMNames(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const toggleAccountIdVisibility = (id: string) => {
-    setShowAccountIds(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const toggleAppIdVisibility = (id: string) => {
-    setShowAppIds(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const toggleAppSecretVisibility = (id: string) => {
-    setShowAppSecrets(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  // Utility functions for masking different types of text
   const maskToken = (token: string) => {
     if (!token) return '';
     if (token.length <= 8) return '*'.repeat(token.length);
     return token.substring(0, 4) + '*'.repeat(token.length - 8) + token.substring(token.length - 4);
-  };
-
-  const maskText = (text: string, visibleChars: number = 3) => {
-    if (!text) return '';
-    if (text.length <= visibleChars * 2) return '*'.repeat(text.length);
-    return text.substring(0, visibleChars) + '*'.repeat(Math.max(3, text.length - visibleChars * 2)) + text.substring(text.length - visibleChars);
-  };
-
-  const renderFieldWithToggle = (
-    value: string, 
-    isVisible: boolean, 
-    toggleFunction: () => void, 
-    maskFunction?: (text: string) => string,
-    maxLength: number = 12
-  ) => {
-    if (!value) return <span className="text-slate-500">N/A</span>;
-    
-    const displayValue = isVisible ? value : (maskFunction ? maskFunction(value) : maskText(value));
-    
-    return (
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-sm" title={isVisible ? value : undefined}>
-          {truncateText(displayValue, maxLength)}
-        </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleFunction}
-          className="text-slate-400 hover:text-white h-6 w-6 p-0"
-        >
-          {isVisible ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-        </Button>
-      </div>
-    );
   };
 
   if (loading) {
@@ -249,8 +193,6 @@ export const BusinessManagerList: React.FC<BusinessManagerListProps> = ({ refres
                     <TableHead className="text-slate-300">Conta de Anúncio</TableHead>
                     <TableHead className="text-slate-300">ID da Conta</TableHead>
                     <TableHead className="text-slate-300">Token de Acesso</TableHead>
-                    <TableHead className="text-slate-300">App ID</TableHead>
-                    <TableHead className="text-slate-300">App Secret</TableHead>
                     <TableHead className="text-slate-300">Data de Criação</TableHead>
                     <TableHead className="text-slate-300 text-right">Ações</TableHead>
                   </TableRow>
@@ -258,55 +200,29 @@ export const BusinessManagerList: React.FC<BusinessManagerListProps> = ({ refres
                 <TableBody>
                   {filteredBusinessManagers.map((bm) => (
                     <TableRow key={bm.id} className="border-slate-700">
-                      <TableCell className="text-white font-medium">
-                        {renderFieldWithToggle(
-                          bm.bm_name,
-                          showBMNames[bm.id],
-                          () => toggleBMNameVisibility(bm.id),
-                          undefined,
-                          14
-                        )}
+                      <TableCell className="text-white font-medium" title={bm.bm_name}>
+                        {truncateText(bm.bm_name)}
+                      </TableCell>
+                      <TableCell className="text-slate-300" title={bm.ad_account_name}>
+                        {truncateText(bm.ad_account_name || 'N/A')}
+                      </TableCell>
+                      <TableCell className="text-slate-300 font-mono text-sm" title={bm.ad_account_id}>
+                        {truncateText(bm.ad_account_id || 'N/A')}
                       </TableCell>
                       <TableCell className="text-slate-300">
-                        <span title={bm.ad_account_name}>
-                          {truncateText(bm.ad_account_name || 'N/A')}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-slate-300">
-                        {renderFieldWithToggle(
-                          bm.ad_account_id,
-                          showAccountIds[bm.id],
-                          () => toggleAccountIdVisibility(bm.id),
-                          undefined,
-                          12
-                        )}
-                      </TableCell>
-                      <TableCell className="text-slate-300">
-                        {renderFieldWithToggle(
-                          bm.access_token,
-                          showTokens[bm.id],
-                          () => toggleTokenVisibility(bm.id),
-                          maskToken,
-                          15
-                        )}
-                      </TableCell>
-                      <TableCell className="text-slate-300">
-                        {renderFieldWithToggle(
-                          bm.app_id || '',
-                          showAppIds[bm.id],
-                          () => toggleAppIdVisibility(bm.id),
-                          undefined,
-                          12
-                        )}
-                      </TableCell>
-                      <TableCell className="text-slate-300">
-                        {renderFieldWithToggle(
-                          bm.app_secret || '',
-                          showAppSecrets[bm.id],
-                          () => toggleAppSecretVisibility(bm.id),
-                          maskToken,
-                          15
-                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm" title={showTokens[bm.id] ? bm.access_token : maskToken(bm.access_token)}>
+                            {showTokens[bm.id] ? truncateText(bm.access_token, 15) : truncateText(maskToken(bm.access_token), 15)}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleTokenVisibility(bm.id)}
+                            className="text-slate-400 hover:text-white h-6 w-6 p-0"
+                          >
+                            {showTokens[bm.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          </Button>
+                        </div>
                       </TableCell>
                       <TableCell className="text-slate-300">
                         {new Date(bm.created_at).toLocaleDateString('pt-BR')}
