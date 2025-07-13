@@ -135,20 +135,20 @@ export const useSubscriptionMetrics = (
         
         if (prevNewError) throw prevNewError;
 
-        // 4. Cancellations (from subscription_status where status is canceled and canceled_at is in period)
-        console.log('📊 [DEBUG] Buscando cancelamentos entre:', fromDate + 'T00:00:00.000Z', 'e', toDate + 'T23:59:59.999Z');
+        // 4. Cancellations (from subscription_status where status is canceled and created_at is in period)
+        console.log('📊 [DEBUG] Buscando cancelamentos por created_at entre:', fromDate + 'T00:00:00.000Z', 'e', toDate + 'T23:59:59.999Z');
         
         let cancelQuery = supabase
           .from('subscription_status')
           .select('*', { count: 'exact' })
           .in('subscription_status', ['canceled', 'cancelado', 'cancelled', 'Canceled', 'Cancelled', 'Cancelado'])
-          .gte('canceled_at', fromDate + 'T00:00:00.000Z')
-          .lte('canceled_at', toDate + 'T23:59:59.999Z');
+          .gte('created_at', fromDate + 'T00:00:00.000Z')
+          .lte('created_at', toDate + 'T23:59:59.999Z');
         
         cancelQuery = buildQuery(cancelQuery);
         const { data: cancelData, count: cancelCount, error: cancelError } = await cancelQuery;
         
-        console.log('📊 [DEBUG] Resultado da query de cancelamentos:', {
+        console.log('📊 [DEBUG] Resultado da query de cancelamentos por created_at:', {
           count: cancelCount,
           data: cancelData,
           error: cancelError
@@ -156,13 +156,13 @@ export const useSubscriptionMetrics = (
         
         if (cancelError) throw cancelError;
 
-        // 5. Previous period cancellations for growth
+        // 5. Previous period cancellations for growth (using created_at)
         let prevCancelQuery = supabase
           .from('subscription_status')
           .select('amount', { count: 'exact' })
           .in('subscription_status', ['canceled', 'cancelado', 'cancelled', 'Canceled', 'Cancelled', 'Cancelado'])
-          .gte('canceled_at', prevFromFormatted + 'T00:00:00.000Z')
-          .lte('canceled_at', prevToFormatted + 'T23:59:59.999Z');
+          .gte('created_at', prevFromFormatted + 'T00:00:00.000Z')
+          .lte('created_at', prevToFormatted + 'T23:59:59.999Z');
         
         prevCancelQuery = buildQuery(prevCancelQuery);
         const { data: prevCancelData, count: prevCancelCount, error: prevCancelError } = await prevCancelQuery;
