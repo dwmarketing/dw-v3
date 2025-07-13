@@ -37,12 +37,17 @@ const Dashboard = () => {
     return "creatives";
   });
 
-  // Função para obter o período "hoje" por padrão
-  const getTodayRange = () => ({
-    from: startOfDay(new Date()),
-    to: endOfDay(new Date())
-  });
-  const [dateRange, setDateRange] = useState(getTodayRange);
+  // Função para obter o período dos últimos 30 dias por padrão
+  const getDefaultRange = () => {
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    return {
+      from: startOfDay(thirtyDaysAgo),
+      to: endOfDay(today)
+    };
+  };
+  const [dateRange, setDateRange] = useState(getDefaultRange);
   const {
     kpis,
     loading: kipsLoading
