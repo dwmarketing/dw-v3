@@ -40,17 +40,62 @@ export const useSubscriptionChartData = (
         const startDateStr = format(startDate, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         const endDateStr = format(endDate, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
-        // Placeholder implementation - replace with actual data sources
-        const mockData: ChartDataItem[] = [
-          { date: '2024-01-01', revenue: 1500, plan: 'Plano A' },
-          { date: '2024-01-02', revenue: 2200, plan: 'Plano B' },
-          { date: '2024-01-03', revenue: 1800, plan: 'Plano C' },
-          { date: '2024-01-04', revenue: 2500, plan: 'Plano A' },
-        ];
+        // Query based on type with different date fields
+        let processedData: ChartDataItem[] = [];
 
-        setChartData(mockData);
+        if (type === 'subscriptions') {
+          // Query subscription events
+          let eventsQuery = supabase
+            .from('subscription_events')
+            .select('event_date, amount, plan, event_type')
+            .gte('event_date', startDateStr)
+            .lte('event_date', endDateStr);
 
-        console.log(`✅ ${type} chart data loaded:`, mockData.length, 'items');
+          if (filters.plan !== 'all') {
+            eventsQuery = eventsQuery.eq('plan', filters.plan);
+          }
+
+          if (filters.eventType !== 'all') {
+            eventsQuery = eventsQuery.eq('event_type', filters.eventType);
+          }
+
+          const { data: eventsData, error: eventsError } = await eventsQuery;
+          if (eventsError) throw eventsError;
+
+          processedData = (eventsData || []).map(item => ({
+            date: format(new Date(item.event_date), 'yyyy-MM-dd'),
+            revenue: item.amount || 0,
+            plan: item.plan
+          }));
+        } else {
+          // Query subscription renewals
+          let renewalsQuery = supabase
+            .from('subscription_renewals')
+            .select('created_at, amount, plan, subscription_status')
+            .gte('created_at', startDateStr)
+            .lte('created_at', endDateStr);
+
+          if (filters.plan !== 'all') {
+            renewalsQuery = renewalsQuery.eq('plan', filters.plan);
+          }
+
+          if (filters.status !== 'all') {
+            renewalsQuery = renewalsQuery.eq('subscription_status', filters.status);
+          }
+
+          const { data: renewalsData, error: renewalsError } = await renewalsQuery;
+          if (renewalsError) throw renewalsError;
+
+          processedData = (renewalsData || []).map(item => ({
+            date: format(new Date(item.created_at), 'yyyy-MM-dd'),
+            revenue: item.amount || 0,
+            plan: item.plan
+          }));
+        }
+
+        setChartData(processedData);
+
+        console.log(`✅ ${type} chart data loaded:`, processedData.length, 'items');
 
       } catch (error) {
         console.error(`❌ Error fetching ${type} chart data:`, error);

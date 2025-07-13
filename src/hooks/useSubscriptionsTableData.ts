@@ -36,10 +36,31 @@ export const useSubscriptionsTableData = (
         setLoading(true);
         console.log('📊 Fetching subscriptions table data...');
 
-        // Placeholder implementation - replace with actual data source
-        setSubscriptions([]);
-        setTotalCount(0);
-        return;
+        // Query subscription status data
+        let query = supabase
+          .from('subscription_status')
+          .select('*', { count: 'exact' })
+          .gte('created_at', dateRange.from.toISOString())
+          .lte('created_at', dateRange.to.toISOString());
+
+        // Apply status filter
+        if (statusFilter !== 'all') {
+          query = query.eq('subscription_status', statusFilter);
+        }
+
+        // Apply pagination
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+        query = query.range(from, to);
+
+        const { data, error, count } = await query;
+
+        if (error) throw error;
+
+        setSubscriptions(data || []);
+        setTotalCount(count || 0);
+
+        console.log('✅ Subscriptions table data loaded:', data?.length || 0, 'items');
 
 
       } catch (error) {
@@ -58,8 +79,53 @@ export const useSubscriptionsTableData = (
     try {
       console.log('📥 Exporting subscriptions to CSV...');
       
-      // Placeholder implementation - replace with actual data source
-      return;
+      // Query all subscription data for export (without pagination)
+      let query = supabase
+        .from('subscription_status')
+        .select('*')
+        .gte('created_at', dateRange.from.toISOString())
+        .lte('created_at', dateRange.to.toISOString());
+
+      if (statusFilter !== 'all') {
+        query = query.eq('subscription_status', statusFilter);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        console.log('No data to export');
+        return;
+      }
+
+      // Create CSV content
+      const headers = ['ID', 'Subscription ID', 'Customer Name', 'Customer Email', 'Plan', 'Amount', 'Status', 'Created At'];
+      const csvContent = [
+        headers.join(','),
+        ...data.map(row => [
+          row.id,
+          row.subscription_id || '',
+          `"${row.customer_name || ''}"`,
+          row.customer_email || '',
+          `"${row.plan}"`,
+          row.amount,
+          row.subscription_status,
+          new Date(row.created_at).toLocaleDateString()
+        ].join(','))
+      ].join('\n');
+
+      // Download CSV
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `subscriptions_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      console.log('✅ CSV exported successfully');
 
     } catch (error) {
       console.error('❌ Error exporting CSV:', error);

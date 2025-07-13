@@ -32,17 +32,32 @@ export const useProductSalesChartData = (
         const startDateStr = format(startDate, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         const endDateStr = format(endDate, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
-        // Placeholder implementation - replace with actual data sources
-        const mockData: ProductSalesDataItem[] = [
-          { date: '2024-01-01', revenue: 5000, product_name: 'Produto A' },
-          { date: '2024-01-02', revenue: 3200, product_name: 'Produto B' },
-          { date: '2024-01-03', revenue: 4800, product_name: 'Produto C' },
-          { date: '2024-01-04', revenue: 2100, product_name: 'Produto D' },
-        ];
+        // Query product sales data
+        let query = supabase
+          .from('product_sales')
+          .select('sale_date, sale_value, product_name, is_subscription')
+          .gte('sale_date', startDateStr)
+          .lte('sale_date', endDateStr);
 
-        setChartData(mockData);
+        // Apply subscription filter if specified
+        if (subscriptionsOnly) {
+          query = query.eq('is_subscription', true);
+        }
 
-        console.log('✅ Product sales data loaded:', mockData?.length || 0);
+        const { data, error } = await query;
+
+        if (error) throw error;
+
+        // Process data for chart
+        const processedData: ProductSalesDataItem[] = (data || []).map(item => ({
+          date: format(new Date(item.sale_date), 'yyyy-MM-dd'),
+          revenue: item.sale_value || 0,
+          product_name: item.product_name
+        }));
+
+        setChartData(processedData);
+
+        console.log('✅ Product sales data loaded:', processedData?.length || 0);
 
       } catch (error) {
         console.error('❌ Error fetching product sales data:', error);

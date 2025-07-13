@@ -26,14 +26,48 @@ export const useMonthlyKPIs = (dateRange: { from: Date; to: Date }) => {
   const fetchMonthlyKPIs = async () => {
     try {
       setLoading(true);
+      console.log('📊 Fetching monthly KPIs...');
       
-      // Placeholder implementation - replace with actual data sources
-      // Using mock data for now until proper tables are created
-      const totalSpent = 15000;
-      const totalRevenue = 45000;
-      const totalOrders = 120;
+      const { startDateStr, endDateStr } = formatDateRangeForQuery(dateRange);
+
+      // Get creative insights for total spent
+      const { data: insightsData, error: insightsError } = await supabase
+        .from('creative_insights')
+        .select('amount_spent')
+        .gte('date_reported', startDateStr)
+        .lte('date_reported', endDateStr);
+
+      if (insightsError) throw insightsError;
+
+      // Get creative sales for revenue and orders
+      const { data: salesData, error: salesError } = await supabase
+        .from('creative_sales')
+        .select('gross_value, net_value')
+        .gte('sale_date', startDateStr)
+        .lte('sale_date', endDateStr)
+        .eq('status', 'completed');
+
+      if (salesError) throw salesError;
+
+      // Get product sales for additional revenue
+      const { data: productSalesData, error: productSalesError } = await supabase
+        .from('product_sales')
+        .select('sale_value')
+        .gte('sale_date', startDateStr)
+        .lte('sale_date', endDateStr);
+
+      if (productSalesError) throw productSalesError;
+
+      // Calculate totals
+      const totalSpent = (insightsData || []).reduce((sum, item) => sum + (item.amount_spent || 0), 0);
+      const creativesRevenue = (salesData || []).reduce((sum, item) => sum + (item.gross_value || 0), 0);
+      const productRevenue = (productSalesData || []).reduce((sum, item) => sum + (item.sale_value || 0), 0);
+      const totalRevenue = creativesRevenue + productRevenue;
+      const totalOrders = (salesData || []).length + (productSalesData || []).length;
+      
       const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-      const avgROI = totalSpent > 0 ? Number(((totalRevenue - totalSpent) / totalSpent).toFixed(2)) : 0;
+      const profit = totalRevenue - totalSpent;
+      const avgROI = totalSpent > 0 ? Number(((profit / totalSpent) * 100).toFixed(2)) : 0;
 
       setKpis({
         totalSpent,
@@ -42,8 +76,11 @@ export const useMonthlyKPIs = (dateRange: { from: Date; to: Date }) => {
         avgROI,
         avgTicket
       });
+
+      console.log('✅ Monthly KPIs loaded:', { totalSpent, totalRevenue, totalOrders, avgROI, avgTicket });
+      
     } catch (error) {
-      console.error('Error fetching monthly KPIs:', error);
+      console.error('❌ Error fetching monthly KPIs:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar as métricas mensais.",

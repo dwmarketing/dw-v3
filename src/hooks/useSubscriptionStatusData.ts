@@ -44,10 +44,40 @@ export const useSubscriptionStatusData = (
         setLoading(true);
         console.log('📊 Fetching subscription status data...');
 
-        // Placeholder implementation - replace with actual data source
-        setSubscriptions([]);
-        setTotalCount(0);
-        return;
+        // Query subscription status data
+        let query = supabase
+          .from('subscription_status')
+          .select('*', { count: 'exact' })
+          .gte('created_at', dateRange.from.toISOString())
+          .lte('created_at', dateRange.to.toISOString());
+
+        // Apply filters
+        if (filters.plan !== 'all') {
+          query = query.eq('plan', filters.plan);
+        }
+
+        if (filters.status !== 'all') {
+          query = query.eq('subscription_status', filters.status);
+        }
+
+        // Apply search filter
+        if (searchTerm) {
+          query = query.or(`customer_name.ilike.%${searchTerm}%,customer_email.ilike.%${searchTerm}%`);
+        }
+
+        // Apply pagination
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+        query = query.range(from, to);
+
+        const { data, error, count } = await query;
+
+        if (error) throw error;
+
+        setSubscriptions(data || []);
+        setTotalCount(count || 0);
+
+        console.log('✅ Subscription status data loaded:', data?.length || 0, 'items');
 
 
 
