@@ -35,13 +35,14 @@ export const ImprovedMetricsOverviewCharts: React.FC<ImprovedMetricsOverviewChar
     .filter(creative => creative.creative_name !== 'Não informado')
     .slice(0, 5);
   
-  // Filter creatives with ROI data
+  // Filter creatives with valid data
   const nonZeroCreatives = creatives.filter(c => 
-    c.amount_spent > 0 || c.sales_count > 0 || c.gross_sales > 0
+    c.amount_spent > 0 && c.creative_name && c.creative_name.trim() !== ''
   );
 
+  // Get top 5 creatives by ROI (ROI is already in percentage from useCreativesData)
   const top5ByROI = [...nonZeroCreatives]
-    .filter(c => c.roi > 0)
+    .filter(c => c.amount_spent > 0) // Only include creatives that have investment
     .sort((a, b) => b.roi - a.roi)
     .slice(0, 5);
 
@@ -63,7 +64,7 @@ export const ImprovedMetricsOverviewCharts: React.FC<ImprovedMetricsOverviewChar
   const formatCurrency = (value: number) => 
     `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 
-  const formatROI = (value: number) => `${value.toFixed(2)}x`;
+  const formatROI = (value: number) => `${value.toFixed(1)}%`;
 
   const getRankingBadge = (index: number) => {
     switch (index) {
