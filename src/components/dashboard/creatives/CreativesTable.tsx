@@ -141,7 +141,7 @@ export const CreativesTable: React.FC<CreativesTableProps> = ({
                         {creative.ctr.toFixed(2)}%
                       </TableCell>
                       <TableCell className={`${creative.roi >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {creative.roi.toFixed(2)}x
+                        {creative.roi.toFixed(1)}%
                       </TableCell>
                       
                       {/* Secondary Columns - Horizontal Scroll */}
