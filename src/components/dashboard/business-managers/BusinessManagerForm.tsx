@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +7,7 @@ import { X, Save, Plus, Trash2 } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
+import { useBusinessManagerFormPersistence } from "@/hooks/useBusinessManagerFormPersistence";
 
 interface AdAccount {
   id: string;
@@ -29,20 +29,21 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    bm_name: '',
-    access_token: '',
-    app_id: '',
-    app_secret: ''
-  });
-  const [adAccounts, setAdAccounts] = useState<AdAccount[]>([
-    { id: '1', ad_account_name: '', ad_account_id: '' }
-  ]);
+  
+  // Use persistence hook
+  const {
+    formData,
+    adAccounts,
+    hasPersistedData,
+    updateFormData,
+    updateAdAccounts,
+    clearPersistedData
+  } = useBusinessManagerFormPersistence(editingBM);
 
   useEffect(() => {
     const loadBusinessManagerData = async () => {
       if (editingBM && user) {
-        setFormData({
+        updateFormData({
           bm_name: editingBM.bm_name || '',
           access_token: editingBM.access_token || '',
           app_id: editingBM.app_id || '',
@@ -67,10 +68,10 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
               ad_account_name: account.ad_account_name || '',
               ad_account_id: account.ad_account_id || ''
             }));
-            setAdAccounts(loadedAccounts);
+            updateAdAccounts(loadedAccounts);
           } else {
             // Fallback to single account from editingBM if no data found
-            setAdAccounts([
+            updateAdAccounts([
               {
                 id: '1',
                 ad_account_name: editingBM.ad_account_name || '',
@@ -85,7 +86,7 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
             variant: "destructive"
           });
           // Fallback to single account from editingBM
-          setAdAccounts([
+          updateAdAccounts([
             {
               id: '1',
               ad_account_name: editingBM.ad_account_name || '',
@@ -97,7 +98,7 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
     };
 
     loadBusinessManagerData();
-  }, [editingBM, user, toast]);
+  }, [editingBM, user, toast, updateFormData, updateAdAccounts]);
 
   // Função para formatar o nome da BM para ser compatível com automações
   const formatBMName = (name: string): string => {
@@ -110,17 +111,17 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
 
   const addAdAccount = () => {
     const newId = Date.now().toString();
-    setAdAccounts([...adAccounts, { id: newId, ad_account_name: '', ad_account_id: '' }]);
+    updateAdAccounts([...adAccounts, { id: newId, ad_account_name: '', ad_account_id: '' }]);
   };
 
   const removeAdAccount = (id: string) => {
     if (adAccounts.length > 1) {
-      setAdAccounts(adAccounts.filter(account => account.id !== id));
+      updateAdAccounts(adAccounts.filter(account => account.id !== id));
     }
   };
 
   const updateAdAccount = (id: string, field: string, value: string) => {
-    setAdAccounts(adAccounts.map(account => 
+    updateAdAccounts(adAccounts.map(account => 
       account.id === id ? { ...account, [field]: value } : account
     ));
   };
@@ -226,6 +227,8 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
         variant: "default"
       });
 
+      // Clear persisted data after successful save
+      clearPersistedData();
       onBusinessManagerCreated();
       onClose();
     } catch (error: any) {
@@ -244,11 +247,17 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <CardTitle className="text-white">
           {editingBM ? 'Editar Business Manager' : 'Novo Business Manager'}
+          {hasPersistedData && !editingBM && (
+            <span className="text-sm text-blue-400 ml-2">(Dados restaurados)</span>
+          )}
         </CardTitle>
         <Button
           variant="ghost"
           size="sm"
-          onClick={onClose}
+          onClick={() => {
+            clearPersistedData();
+            onClose();
+          }}
           className="text-slate-400 hover:text-white"
         >
           <X className="w-4 h-4" />
@@ -266,7 +275,7 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
                   id="bm_name"
                   type="text"
                   value={formData.bm_name}
-                  onChange={(e) => setFormData({ ...formData, bm_name: e.target.value })}
+                  onChange={(e) => updateFormData({ bm_name: e.target.value })}
                   placeholder="Ex: Minha Empresa BM"
                   className="bg-slate-800 border-slate-700 text-white"
                   required
@@ -282,7 +291,7 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
                   id="access_token"
                   type="password"
                   value={formData.access_token}
-                  onChange={(e) => setFormData({ ...formData, access_token: e.target.value })}
+                  onChange={(e) => updateFormData({ access_token: e.target.value })}
                   placeholder="Insira o token de acesso"
                   className="bg-slate-800 border-slate-700 text-white"
                   required
@@ -295,7 +304,7 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
                   id="app_id"
                   type="text"
                   value={formData.app_id}
-                  onChange={(e) => setFormData({ ...formData, app_id: e.target.value })}
+                  onChange={(e) => updateFormData({ app_id: e.target.value })}
                   placeholder="Ex: 123456789012345"
                   className="bg-slate-800 border-slate-700 text-white"
                 />
@@ -307,7 +316,7 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
                   id="app_secret"
                   type="password"
                   value={formData.app_secret}
-                  onChange={(e) => setFormData({ ...formData, app_secret: e.target.value })}
+                  onChange={(e) => updateFormData({ app_secret: e.target.value })}
                   placeholder="Insira a chave secreta"
                   className="bg-slate-800 border-slate-700 text-white"
                 />
@@ -383,7 +392,10 @@ export const BusinessManagerForm: React.FC<BusinessManagerFormProps> = ({
             <Button
               type="button"
               variant="outline"
-              onClick={onClose}
+              onClick={() => {
+                clearPersistedData();
+                onClose();
+              }}
               className="border-slate-600 text-slate-400 hover:text-white"
             >
               Cancelar

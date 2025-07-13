@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus } from 'lucide-react';
 import { BusinessManagerForm } from './business-managers/BusinessManagerForm';
@@ -9,8 +9,39 @@ export const BusinessManagersTab: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  // Check for persisted data on mount and show form if data exists
+  useEffect(() => {
+    const checkPersistedData = () => {
+      try {
+        const saved = localStorage.getItem('business-manager-form-data');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const now = Date.now();
+          const EXPIRY_TIME = 24 * 60 * 60 * 1000; // 24 hours
+          
+          if (now - parsed.timestamp < EXPIRY_TIME) {
+            // Check if there's meaningful data to restore
+            const hasFormData = Object.values(parsed.formData).some((value: any) => value?.trim() !== '');
+            const hasAdAccountData = parsed.adAccounts.some((account: any) => 
+              account.ad_account_name?.trim() !== '' || account.ad_account_id?.trim() !== ''
+            );
+            
+            if (hasFormData || hasAdAccountData) {
+              setShowCreateForm(true);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking persisted data:', error);
+      }
+    };
+
+    checkPersistedData();
+  }, []);
+
   const handleBusinessManagerCreated = () => {
     setRefreshTrigger(prev => prev + 1);
+    setShowCreateForm(false);
   };
 
   return (
