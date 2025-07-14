@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfDay, endOfDay } from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
 
 interface CreativeRankingData {
   creative_name: string;
@@ -32,28 +33,29 @@ export const useSalesRankingData = (dateRange: DateRange) => {
     try {
       setLoading(true);
       
-      // Get the start and end of the selected days in local time
-      const startDate = startOfDay(dateRange.from);
-      const endDate = endOfDay(dateRange.to);
+      // Convert local dates to Brazil timezone for proper filtering
+      const startDate = fromZonedTime(startOfDay(dateRange.from), 'America/Sao_Paulo');
+      const endDate = fromZonedTime(endOfDay(dateRange.to), 'America/Sao_Paulo');
       
-      // Format dates to ISO string in local timezone
-      const startDateStr = format(startDate, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-      const endDateStr = format(endDate, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+      console.log('Fetching creative sales data - Start:', startDate.toISOString(), 'End:', endDate.toISOString());
 
-      console.log('Ranking data filtering - Start:', startDateStr, 'End:', endDateStr);
+      // Query creative_sales table with date filtering
+      const { data: salesData, error } = await supabase
+        .from('creative_sales')
+        .select('*')
+        .gte('sale_date', startDate.toISOString())
+        .lte('sale_date', endDate.toISOString())
+        .order('sale_date', { ascending: false });
 
-      // Placeholder implementation - replace with actual data sources
-      const mockSalesData = [
-        { creative_name: 'Creative A', status: 'completed', net_value: 1250 },
-        { creative_name: 'Creative B', status: 'completed', net_value: 980 },
-        { creative_name: 'Creative C', status: 'Unfulfilled', net_value: 750 },
-        { creative_name: '', status: 'completed', net_value: 500 },
-      ];
-      const salesData = mockSalesData;
+      if (error) {
+        console.error('Error fetching creative sales:', error);
+        throw error;
+      }
 
-      console.log('Raw sales data for ranking:', salesData?.length);
+      console.log('Raw sales data for ranking:', salesData?.length || 0, 'records');
 
       if (!salesData || salesData.length === 0) {
+        console.log('No sales data found for the selected date range');
         setRankingData([]);
         setMissingDataStats({
           totalSales: 0,
@@ -106,7 +108,8 @@ export const useSalesRankingData = (dateRange: DateRange) => {
         acc[creativeName].total_sales += 1;
         acc[creativeName].total_revenue += (sale.net_value || 0);
         
-        if (sale.status === 'completed') {
+        // Check if status indicates completed sale
+        if (sale.status === 'completed' || sale.status === 'Completed') {
           acc[creativeName].completed_sales += 1;
         }
         
@@ -125,6 +128,7 @@ export const useSalesRankingData = (dateRange: DateRange) => {
         .sort((a, b) => b.total_revenue - a.total_revenue); // Sort by revenue desc
 
       console.log('Processed ranking data:', rankingData.slice(0, 5));
+      console.log('Total creatives found:', rankingData.length);
 
       setRankingData(rankingData);
 
@@ -132,9 +136,10 @@ export const useSalesRankingData = (dateRange: DateRange) => {
       console.error('Error fetching ranking data:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível carregar os dados de ranking.",
+        description: "Não foi possível carregar os dados de ranking dos criativos.",
         variant: "destructive",
       });
+      setRankingData([]);
     } finally {
       setLoading(false);
     }
